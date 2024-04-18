@@ -1,0 +1,110 @@
+#include "ballsensor.h"
+
+Adafruit_MCP3008 BallSensor::adc1;
+Adafruit_MCP3008 BallSensor::adc2;
+Adafruit_MCP3008 BallSensor::adc3;
+float BallSensor::cosVals[BallSensorConstants::Ball_SENSORS] = {0};
+float BallSensor::sinVals[BallSensorConstants::Ball_SENSORS] = {0};
+float angles[24] = {0};
+float BallSensor::ball_angle_rad = 0;
+float BallSensor::ball_mag = 0;
+
+int BallSensor::ballValues[BallSensorConstants::Ball_SENSORS] = {0};
+
+int sensorIndexArray[24]; 
+
+int mapInputToOutput(int input) {
+	int output = -1;
+	if (input >= 1 && input <= 5) {
+		output = input + 11;
+	} else if (input <= 13) {
+		output = input - 5;
+	} else if (input <= 21) {
+		output = input + 3;
+	} else if (input <= 24) {
+		output = input - 13;
+	}
+	return output;
+}
+
+void BallSensor::setup() {
+    adc1.begin(27, 11, 12, BallSensorConstants::CS1);
+    adc2.begin(27, 11, 12, 30);
+    adc3.begin(27, 11, 12, BallSensorConstants::CS3);
+
+    for (int i = 0; i < BallSensorConstants::Ball_SENSORS; i++) {
+        sensorIndexArray[i] = mapInputToOutput(i + 1);
+        Serial.println("Sensor Index: " + String(i) + " " + String(sensorIndexArray[i]));
+    }
+
+    float step = 0;
+    float increment = 360 / BallSensorConstants::Ball_SENSORS;
+
+    for (int i = 0; i < BallSensorConstants::Ball_SENSORS; i++) {
+        // start at 180 degrees, go torwards 0 and then to -180 in a full circle
+        cosVals[i] = cos(step * PI / 180);
+        sinVals[i] = sin(step * PI / 180);
+        angles[i] = step;
+        step += increment;
+        Serial.println("i: " + String(i) + " cosVal: " + cosVals[i] + " sinVal: " + sinVals[i]);
+    }
+};
+
+void BallSensor::read() {
+    for (int i = 0; i < BallSensorConstants::Ball_SENSORS; i++) {
+        ballValues[i] = 1050 - readBallSensor(i);
+        // Serial.print(String(ballValues[i]) + " ");
+        // Serial.println("Ball Value: " + String(i) + " " + String(ballValues[i]));
+    }
+    // Serial.println();
+};
+
+int BallSensor::readBallSensor(int x) {
+  
+  int y = sensorIndexArray[x]-1;
+  // Serial.println("x: " + String(x) + " y: " +  String(y));
+  int reading;
+  if (y < 8) {
+    reading = adc1.readADC(y);
+  } else if (y < 16) {
+    // Serial.println(y-8);
+    reading = adc2.readADC(y - 8);
+    // Serial.println(reading);
+  } else {
+    reading = adc3.readADC(y - 16);
+  }
+  
+  return reading;
+}
+
+tuple<float, float> BallSensor::getBallAngleVector(bool refreshValues) {
+    if (refreshValues) {
+        BallSensor::read();
+    }
+    float x = 0;
+    float y = 0;
+
+    int maxIndex = 0;
+    for (int i = 1; i < BallSensorConstants::Ball_SENSORS; ++i) {
+      if (ballValues[i] > ballValues[maxIndex]) {
+        maxIndex = i;
+      }
+    }
+
+    int weightedBallValues[BallSensorConstants::Ball_SENSORS] = {0};
+    for (int i = 0; i < BallSensorConstants::Ball_SENSORS; i++) {
+      int dist = abs(i-maxIndex);
+      if (dist > 12) {
+        dist = 24 - dist;
+      }
+      weightedBallValues[i] = ballValues[i] * (12 - dist) / 12;   
+    }    
+
+    for (int i = 0; i < BallSensorConstants::Ball_SENSORS; i++) {
+        x += cosVals[i] * weightedBallValues[i];
+        y += sinVals[i] * weightedBallValues[i];
+    }
+    ball_angle_rad = atan2(y, x);
+    ball_mag = min(sqrt(x * x + y * y) / 4000.0, 1.0);
+    return make_tuple(ball_angle_rad, ball_mag);
+}

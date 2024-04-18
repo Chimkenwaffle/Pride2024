@@ -1,0 +1,125 @@
+#include <Arduino.h>
+#include "subsystems/drivetrain/drivetrain.h"
+#include "subsystems/gyro/gyro.h"
+#include "subsystems/switches/switches.h"
+#include "subsystems/ballsensor/ballsensor.h"
+#include "subsystems/superstate/superstate.h"
+#include "constants.hpp"
+#include <Adafruit_MCP3008.h>
+
+Adafruit_MCP3008 adc4;
+Adafruit_MCP3008 adc5;
+Adafruit_MCP3008 adc6;
+
+void setup() {
+  
+  Serial.begin(9600);
+  delay(250);
+
+  if (CrashReport) {
+    Serial.print(CrashReport);
+    Serial.println();
+    Serial.flush();
+  }
+
+  SuperState::setup();
+  
+  bool success = Gyro::setup();
+  Gyro::setOrigin();
+  Drivetrain::setup();
+  Switches::setup();
+  BallSensor::setup();
+
+  // setup failed! 
+  if (!success) {
+    SuperState::changeState(State::INIT_FAILED);
+    while (1) {
+      SuperState::update();
+      Serial.println("[SETUP] Failed to initialize gyro");
+      delay(1000);
+    }
+  }
+
+  SuperState::changeState(State::CALIBRATING);
+  SuperState::update(true);
+
+  // Line sensor ADC
+  // TODO: Replace w/ line sensor subsystem l8r
+  adc4.begin(27, 11, 12, 24);
+  adc5.begin(27, 11, 12, 10);
+  adc6.begin(27, 11, 12, 9);
+
+  
+  while (Switches::getSwitchOne() == false) {
+    Serial.println("[SETUP] Calibrating...");
+    // Serial.println("Switch 1" + String(Switches::getSwitchOne()) + "\n Switch 2" + String(Switches::getSwitchTwo()) + "\n Switch 3" + String(Switches::getSwitchThree()) + "\n Switch 4" + String(Switches::getSwitchFour()) + "\n Switch 5" + String(Switches::getSwitchFive()));
+    delay(100);
+  }
+  Serial.println("[SETUP] Calibrated");
+  delay(200);
+
+  SuperState::changeState(State::READY);
+}
+
+float dampen(float x) {
+  return fmin(1.0, 0.1 * pow(M_E, 3.8 * x));
+  // return fmax(0, fmin(1, 0.02 * pow(1.0001, 20 * (x - 10))));
+}
+
+float getBallOffset(float inAngle) {
+  float formulaAngle = inAngle > 180.0 ? 360 - inAngle : inAngle;
+  return (fmin(0.05 * pow(M_E, 0.15 * formulaAngle + 1.2), 90));
+}
+
+void loop() {
+  SuperState::update();
+
+  // BallSensor::read();
+  BallSensor::getBallAngleVector(true);
+
+  Serial.println("Ball Angle: " + String(BallSensor::ball_angle_rad*57.2958));
+  Serial.println("Ball Mag: " + String(BallSensor::ball_mag));
+
+    float angle = BallSensor::ball_angle_rad;
+    if (angle <0) {
+      angle += 2 * 3.14;
+    }
+    // deg to radians conversion 
+    angle *= 57.2958;
+    float translatedAngle = fmod((-angle + 90), 360); // Translate to range 0 to 360
+    if (translatedAngle < 0)
+        translatedAngle += 360; // Ensure positive angle in range 0 to 360
+    if (translatedAngle > 180)
+        translatedAngle -= 360; // Translate to range -180 to 180
+    float offset = getBallOffset(fabs(translatedAngle));
+    // Serial.print("Angle: " + String(angle) + " Translated Angle: " + String(translatedAngle) + " Offset: " + String(offset));
+    float finalAngle = translatedAngle > 0 ? translatedAngle + offset * dampen(BallSensor::ball_mag) : translatedAngle - offset * dampen(BallSensor::ball_mag);
+    if (finalAngle < -180)
+        finalAngle += 360;
+    
+    float convertedAngle = fmod((90 - finalAngle), 360); // Shift the angle back to the original range
+    if (convertedAngle < 0)
+        convertedAngle += 360;
+
+    // Serial.println(" Final Angle: " + String(finalAngle) + " True Angle " + String(convertedAngle));
+
+    if (fabs(translatedAngle) < 10 && BallSensor::ball_mag < 0.2) {
+      Drivetrain::stop();
+    } else {
+      float roboAngle = Gyro::getData().yaw;
+      Serial.println(String(BallSensor::ball_mag) + " : " + String(dampen(BallSensor::ball_mag)) + " : " + String(offset) + " : " + String(convertedAngle) + " : " + String(roboAngle));
+      Drivetrain::drive(convertedAngle * 3.14 / 180, 1, abs(roboAngle) <= 0.1 ? 0 : roboAngle > 0 ? 0.1 : -0.1);
+      // Drivetrain::drive(3.14/2, .25, 0);
+      // Drivetrain::print();
+    }
+      // Serial.println(BallSensor::ball_mag);
+
+    // float offset = getBallOffset(translatedAngle);
+    // Serial.println("Angle: " + String(angle) + " Offset: " + String(offset));
+    // Serial.println(offset);
+  // } else {
+    // forwards
+  // }
+  delay(1000/10);
+}
+
