@@ -38,7 +38,7 @@ void Gyro::setOrigin() {
   }
 
   while (1) {
-    Gyro::getData(false);
+    Gyro::getHeading(false);
     if (Gyro::latest_data.yaw != 0 || Gyro::latest_data.pitch != 0 || Gyro::latest_data.roll != 0) {
       Serial.println("[GYRO] Origin set");
       Gyro::offset = Gyro::latest_data;
@@ -48,11 +48,16 @@ void Gyro::setOrigin() {
   }
 }
 
-gyro_data Gyro::getData(bool printOuts) {
+/**
+ * @brief CCW is positive; CW is negative
+ * 
+ * @return AngleRad 
+*/
+AngleRad Gyro::getHeading(bool printOuts) {
   if (!gyroEnabled) {
     if (printOuts)
       Serial.println("[GYRO] Gyro not enabled, using 0, 0, 0");
-    return {0, 0, 0};
+    return AngleRad(0);
   }
 
   if (bno08x.wasReset()) {
@@ -73,9 +78,16 @@ gyro_data Gyro::getData(bool printOuts) {
         break;
     }
     Gyro::latest_data = {ypr.yaw - Gyro::offset.yaw, ypr.pitch - Gyro::offset.pitch, ypr.roll - Gyro::offset.roll};
-    // Serial.println("[GYRO] Yaw: " + String(Gyro::latest_data.yaw) + ", Pitch: " + String(Gyro::latest_data.pitch) + ", Roll: " + String(Gyro::latest_data.roll));
+    Serial.println("[GYRO] Yaw: " + String(Gyro::latest_data.yaw) + ", Pitch: " + String(Gyro::latest_data.pitch) + ", Roll: " + String(Gyro::latest_data.roll));
   }
-  return Gyro::latest_data;
+  float temp = Gyro::latest_data.yaw;
+  while (temp < MathConstants::PRIDE_PI) {
+    temp += MathConstants::PRIDE_PI * 2;
+  } 
+  while (temp > MathConstants::PRIDE_PI) {
+    temp -= MathConstants::PRIDE_PI * 2;
+  }
+  return AngleRad(temp);
 }
 
 void Gyro::setReports(sh2_SensorId_t reportType, long report_interval) {

@@ -8,7 +8,8 @@
 enum State {
     INIT_FAILED,
     CALIBRATING,
-    READY
+    READY,
+    PICKED_UP
 };
 
 class Color {

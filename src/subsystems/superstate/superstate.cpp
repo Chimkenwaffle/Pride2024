@@ -6,7 +6,8 @@ State SuperState::currentState;
 std::unordered_map<State, Color*> stateColors = {
     {INIT_FAILED, new Color(85, 0, 0, true)}, // red
     {CALIBRATING, new Color(165, 36, 0)},  // yellow
-    {READY, new Color(40, 85, 0, true)}   // green flashing
+    {READY, new Color(40, 85, 0, true)},   // green flashing
+    {PICKED_UP, new Color(0, 0, 255, false)}   // blue solid
 };
 
 // Define the constructor of the Color class

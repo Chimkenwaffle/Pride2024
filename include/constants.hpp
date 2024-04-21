@@ -50,14 +50,18 @@ namespace BallSensorConstants {
     const int CS1 = 32;
     const int CS2 = 30;
     const int CS3 = 4;
-    const int Ball_SENSORS = 24;
+    const int BALL_SENSORS = 24;
 }
 
 namespace LineSensorConstants {
-    const int CS1 = 24;
-    const int CS2 = 10;
-    const int CS3 = 9;
-    const int Line_SENSORS = 24;
+    const int CS4 = 24;
+    const int CS5 = 10;
+    const int CS6 = 9;
+    const int LINE_SENSORS = 24;
+    const int READ_TIMES = 3;
+    const int LINE_READ_MIN = 20;
+    const int LINE_READ_MAX = 900;
+    const int NUM_SENSORS_PICKUP_THRESHOLD = LINE_SENSORS / 2;
 }
 
 namespace SPIBus {

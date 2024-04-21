@@ -3,7 +3,10 @@
 #define GYRO_H
 
 #include <Adafruit_BNO08x.h>
+#include <PrideUtils.h>
 #include "constants.hpp"
+
+using namespace PrideUtils;
 
 struct gyro_data {
   float yaw;
@@ -14,10 +17,11 @@ struct gyro_data {
 class Gyro {
   public:
     static gyro_data offset;
+    static AngleRad heading;
     static bool setup();
     static void setOrigin();
     static void reset();
-    static gyro_data getData(bool printOuts = true);
+    static AngleRad getHeading(bool printOuts = true);
     static gyro_data latest_data;
   private:
     static void setReports(sh2_SensorId_t reportType, long report_interval);       

@@ -68,18 +68,20 @@ void Motor::write() {
 void Motor::setDirection() {
     if (currentVelocity > 0) {
         // Forward
-        if (reversed) {
-            analogWrite(phPin, 0);
-        } else {
-            analogWrite(phPin, 255);
-        }
+        digitalWriteFast(phPin, reversed ? LOW : HIGH);
+        // if (reversed) {
+        //     analogWrite(phPin, 0);
+        // } else {
+        //     analogWrite(phPin, 255);
+        // }
     } else {
         // Backward
-        if (reversed) {
-            analogWrite(phPin, 255);
-        } else {
-            analogWrite(phPin, 0);
-        }
+        digitalWriteFast(phPin, reversed ? HIGH : LOW);
+        // if (reversed) {
+        //     analogWrite(phPin, 255);
+        // } else {
+        //     analogWrite(phPin, 0);
+        // }
     }
 }
 
@@ -90,5 +92,5 @@ void Motor::setDirection() {
 */
 void Motor::stop() {
     analogWrite(enPin, 0);
-    analogWrite(phPin, 0);
+    digitalWriteFast(phPin, 0);
 }

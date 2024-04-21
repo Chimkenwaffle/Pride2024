@@ -13,7 +13,7 @@ AngleDeg::AngleDeg(float value) {
 }
 
 /**
- * @brief Move 0 Degrees from right to forward [-180, 180]
+ * @brief Translates angle from cartesian plane to forward plane
  * 
  * @return AngleDeg 
 */
@@ -24,7 +24,11 @@ AngleDeg AngleDeg::forwardAngle() {
     }
     return AngleDeg(angle);
 }
-
+/**
+ * @brief Translates angle from forward plane to cartesian plane
+ * 
+ * @return AngleDeg 
+*/
 AngleDeg AngleDeg::cartesianAngle() {
     float angle = fmod((360.0 - this->value + 90.0), 360.0);
     if (angle > 180.0) {

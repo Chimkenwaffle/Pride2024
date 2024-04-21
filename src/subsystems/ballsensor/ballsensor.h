@@ -15,13 +15,13 @@ class BallSensor {
         static Adafruit_MCP3008 adc1;
         static Adafruit_MCP3008 adc2;
         static Adafruit_MCP3008 adc3;
-        static float cosVals[BallSensorConstants::Ball_SENSORS];
-        static float sinVals[BallSensorConstants::Ball_SENSORS];
+        static float cosVals[BallSensorConstants::BALL_SENSORS];
+        static float sinVals[BallSensorConstants::BALL_SENSORS];
         static float ball_angle_rad;
         static PrideUtils::AngleDeg ball_angle_deg;
         static float ball_mag;
 
-        static int ballValues[BallSensorConstants::Ball_SENSORS];
+        static int ballValues[BallSensorConstants::BALL_SENSORS];
 
         static void setup();
 
