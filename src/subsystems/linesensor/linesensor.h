@@ -4,6 +4,8 @@
 
 #include <Arduino.h>
 #include <Adafruit_MCP3008.h>
+#include <SD.h>
+#include <SPI.h>
 #include "constants.hpp"
 #include "../superstate/superstate.h"
 
@@ -22,6 +24,8 @@ class LineSensor {
         static float cosVals[LineSensorConstants::LINE_SENSORS];
         static float sinVals[LineSensorConstants::LINE_SENSORS];
         static void setup();
+        static void readThresholds();
+        static void saveThresholds();
 
         static void read();
 

@@ -37,6 +37,7 @@ void setup() {
   Switches::setup();
   BallSensor::setup();
   LineSensor::setup();
+  LineSensor::readThresholds();
 
   // setup failed! 
   if (!success) {
@@ -50,7 +51,7 @@ void setup() {
 
   SuperState::changeState(State::CALIBRATING);
   SuperState::update(true);
-  
+
   while (Switches::getSwitchOne() == false) {
     // Serial.println("[SETUP] Calibrating...");
     Drivetrain::stop();
@@ -92,6 +93,7 @@ void setup() {
         Serial.print(String(LineSensor::pickup_thresholds[i]) + " ");
       }
       Serial.println();
+      LineSensor::saveThresholds();
     } 
     // Serial.println("Switch 1" + String(Switches::getSwitchOne()) + "\n Switch 2" + String(Switches::getSwitchTwo()) + "\n Switch 3" + String(Switches::getSwitchThree()) + "\n Switch 4" + String(Switches::getSwitchFour()) + "\n Switch 5" + String(Switches::getSwitchFive()));
     delay(100);

@@ -35,6 +35,61 @@ void LineSensor::setup() {
         lineSensorIndexArray[i] = lineMapInputToOutput(i + 1);
         Serial.println("Line Sensor Index: " + String(i) + " " + String(lineSensorIndexArray[i]));
     }
+
+    if (!SD.begin(BUILTIN_SDCARD)) {
+        Serial.println("[LS] Failed to initialize builtin SD Card");
+    }
+}
+
+File thresholdFile;
+const char *THRESHOLD_FILE_NAME = "threshold.csv";
+
+void LineSensor::readThresholds() {
+    thresholdFile = SD.open(THRESHOLD_FILE_NAME);
+    if (!thresholdFile) {
+        Serial.println("[LS] Failed to access threshold.csv");
+        return;
+    }
+    // reading thresholds
+    int i = 0;
+    while (thresholdFile.available()) {
+        int currentThreshold = thresholdFile.parseInt();
+        if (i > LineSensorConstants::LINE_SENSORS * 2 - 1) {
+            break;
+        }
+        if (i < LineSensorConstants::LINE_SENSORS) {
+            thresholds[i] = currentThreshold;
+        } else {
+            pickup_thresholds[i - LineSensorConstants::LINE_SENSORS] = currentThreshold;
+        }
+        i++;
+    }
+}
+
+void LineSensor::saveThresholds() {
+    thresholdFile = SD.open(THRESHOLD_FILE_NAME, FILE_WRITE);
+    if (!thresholdFile) {
+        Serial.println("[LS] Failed to save thresholds");
+        return;
+    }
+    // writing thresholds
+    for (int i = 0; i < LineSensorConstants::LINE_SENSORS; i++) {
+        thresholdFile.print(LineSensor::thresholds[i]);
+        if (i != LineSensorConstants::LINE_SENSORS-1) {
+            thresholdFile.print(",");
+        }
+    }
+    thresholdFile.println();
+    // writing pickup_thresholds
+    for (int i = 0; i < LineSensorConstants::LINE_SENSORS; i++) {
+        thresholdFile.print(LineSensor::pickup_thresholds[i]);
+        if (i != LineSensorConstants::LINE_SENSORS-1) {
+            thresholdFile.print(",");
+        }
+    }
+    // thresholdFile.println();
+    thresholdFile.close();
+    Serial.println("[LS] Thresholds successfully saved.");
 }
 
 int LineSensor::readLineSensor(int x) {
