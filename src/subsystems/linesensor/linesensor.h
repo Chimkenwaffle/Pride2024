@@ -8,8 +8,11 @@
 #include <SPI.h>
 #include "constants.hpp"
 #include "../superstate/superstate.h"
+#include "PrideUtils.h"
+#include "../drivetrain/drivetrain.h"
 
 using namespace std;
+using namespace PrideUtils;
 
 class LineSensor {
     public:
@@ -23,6 +26,15 @@ class LineSensor {
         static int readings[LineSensorConstants::LINE_SENSORS];
         static float cosVals[LineSensorConstants::LINE_SENSORS];
         static float sinVals[LineSensorConstants::LINE_SENSORS];
+        static Vector lineSensorVectors[LineSensorConstants::LINE_SENSORS];
+        static Vector previousVector;
+        static Vector currentVector;
+        static Vector storedVector;
+        static Vector previousDriveDirection;
+        static bool held180Case;
+        static bool previousCase;
+        static bool isOver;
+        static bool firstTime;
         static void setup();
         static void readThresholds();
         static void saveThresholds();

@@ -40,59 +40,121 @@ void setup() {
   LineSensor::readThresholds();
 
   // setup failed! 
-  if (!success) {
-    SuperState::changeState(State::INIT_FAILED);
-    while (1) {
-      SuperState::update();
-      Serial.println("[SETUP] Failed to initialize gyro");
-      delay(1000);
-    }
-  }
+  // if (!success) {
+  //   SuperState::changeState(State::INIT_FAILED);
+  //   while (1) {
+  //     SuperState::update();
+  //     Serial.println("[SETUP] Failed to initialize gyro");
+  //     delay(1000);
+  //   }
+  // }
 
-  SuperState::changeState(State::CALIBRATING);
-  SuperState::update(true);
 
   while (Switches::getSwitchOne() == false) {
+    SuperState::changeState(State::WAITING_TO_CALIBRATE);
+    SuperState::update(true);
     // Serial.println("[SETUP] Calibrating...");
     Drivetrain::stop();
     if (Switches::getSwitchTwo() == true) {
+
       Serial.println("[SETUP] Calibrating Line Sensors");
 
-      int maxReadings[LineSensorConstants::LINE_SENSORS] = {0};
-      int minReadings[LineSensorConstants::LINE_SENSORS];
+      int maxGreenReadings[LineSensorConstants::LINE_SENSORS] = {0};
+      int minGreenReadings[LineSensorConstants::LINE_SENSORS];
 
       for (int i = 0; i < LineSensorConstants::LINE_SENSORS; i++) {
-        minReadings[i] = 800;
+        minGreenReadings[i] = 800;
       }
+      // Changes superstate to calibrating
+      SuperState::changeState(State::GREEN_CALIBRATING);
 
       while(Switches::getSwitchTwo() == true) {
+        // Makes LED flash
+        SuperState::update();
+        Drivetrain::rotate(.2);
         LineSensor::read();
         for (int i = 0; i < LineSensorConstants::LINE_SENSORS; i++) {
-          if (LineSensor::readings[i] > maxReadings[i]) {
-            maxReadings[i] = LineSensor::readings[i];
+          if (LineSensor::readings[i] > maxGreenReadings[i]) {
+            maxGreenReadings[i] = LineSensor::readings[i];
           }
-          if (LineSensor::readings[i] < minReadings[i]) {
-            minReadings[i] = LineSensor::readings[i];
+          if (LineSensor::readings[i] < minGreenReadings[i]) {
+            minGreenReadings[i] = LineSensor::readings[i];
           }
         }
         delay(1000/10);
       }
 
+      Drivetrain::stop();
+
       for (int i = 0; i < LineSensorConstants::LINE_SENSORS; i++) {
-        LineSensor::thresholds[i] = maxReadings[i] + 45;
-        LineSensor::pickup_thresholds[i] = max(minReadings[i] - 60, 0);
+        LineSensor::pickup_thresholds[i] = max(minGreenReadings[i] - 150, 0);
       }
-      Serial.print("Thresholds: ");
-      for (int i = 0; i < LineSensorConstants::LINE_SENSORS; i++) {
-        Serial.print(String(LineSensor::thresholds[i]) + " ");
+
+      SuperState::changeState(State::WAITING_TO_SPIN_CALIBRATE);
+      SuperState::update();
+      while(Switches::getSwitchThree() == false) {
+        delay(100);
+      }
+
+      int maxWhiteReadings[24] = {0};
+      if(Switches::getSwitchThree() == true) {
+        SuperState::changeState(State::SPIN_CALIBRATING);
+        Serial.println("[SETUP] Starting Spinning Calibration");
+        while(Switches::getSwitchThree() == true) {
+          SuperState::update();
+          Drivetrain::rotate(.2);
+          LineSensor::read();
+          for (int i = 0; i < LineSensorConstants::LINE_SENSORS; i++) {
+            if (LineSensor::readings[i] > maxWhiteReadings[i]) {
+              maxWhiteReadings[i] = LineSensor::readings[i];
+            }
+          }
+          delay(50);
+        }
+      }
+
+      Drivetrain::stop();
+
+      Serial.print("Green: ");
+      for(int i = 0; i < LineSensorConstants::LINE_SENSORS; i++) {
+        Serial.print(maxGreenReadings[i]);
+        Serial.print(" ");
       }
 
       Serial.println();
-      Serial.print("Pickup Thresholds: ");
-      for (int i = 0; i < LineSensorConstants::LINE_SENSORS; i++) {
-        Serial.print(String(LineSensor::pickup_thresholds[i]) + " ");
+
+      Serial.print("White: ");
+      for(int i = 0; i < LineSensorConstants::LINE_SENSORS; i++) {
+        Serial.print(maxWhiteReadings[i]);
+        Serial.print(" ");
       }
       Serial.println();
+
+      bool greenGreaterThanWhite = false;
+      for(int i = 0; i < LineSensorConstants::LINE_SENSORS; i++) {
+        if(maxGreenReadings[i] > maxWhiteReadings[i]) {
+          greenGreaterThanWhite = true;
+        }
+        LineSensor::thresholds[i] = (maxGreenReadings[i] + maxWhiteReadings[i]) / 2;
+      }
+
+      Serial.print("Threshold Values: ");
+      for(int i = 0; i < LineSensorConstants::LINE_SENSORS; i++) {
+        Serial.print(LineSensor::thresholds[i]);
+        Serial.print(" ");
+      }
+      Serial.println();
+
+      if(greenGreaterThanWhite) { 
+        Serial.print("[ERROR] GREEN LINE SENSOR READINGS GREATER THAN WHITE LINE SENSOR READINGS !!!");
+        SuperState::changeState(State::INIT_FAILED);
+        while(true) {
+          SuperState::update();
+          delay(100);
+        }
+      }
+      Serial.println();
+
       LineSensor::saveThresholds();
     } 
     // Serial.println("Switch 1" + String(Switches::getSwitchOne()) + "\n Switch 2" + String(Switches::getSwitchTwo()) + "\n Switch 3" + String(Switches::getSwitchThree()) + "\n Switch 4" + String(Switches::getSwitchFour()) + "\n Switch 5" + String(Switches::getSwitchFive()));
@@ -161,11 +223,11 @@ void loop() {
   //   Drivetrain::drive(driveAngle, .5, rotation);
   // }
 
-
+  // Drivetrain::drive(2*3.14, .5, 0);
   // prev_robo_angle = roboAngle;
 
   LineSensor::processLineSensors(true);
 
-  delay(1000/10);
+  delay(1000/5);
 }
 

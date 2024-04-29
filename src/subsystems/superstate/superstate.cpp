@@ -4,8 +4,11 @@
 State SuperState::currentState;
 
 std::unordered_map<State, Color*> stateColors = {
-    {INIT_FAILED, new Color(0, 0, 255, false)}, // red
-    {CALIBRATING, new Color(165, 36, 0)},  // yellow
+    {INIT_FAILED, new Color(255, 0, 0, false)}, // red
+    {WAITING_TO_CALIBRATE, new Color(165, 36, 0)},  // yellow
+    {GREEN_CALIBRATING, new Color(165, 36, 0, true)}, // yellow flashing
+    {WAITING_TO_SPIN_CALIBRATE, new Color(145, 8, 29)}, // magenta 
+    {SPIN_CALIBRATING, new Color(145, 8, 29, true)}, // magenta flashing
     {READY, new Color(40, 85, 0, true)},   // green flashing
     {PICKED_UP, new Color(0, 0, 255, false)}   // blue solid
 };
@@ -16,7 +19,7 @@ Color::Color(int r, int g, int b, bool flashing) : r(r), g(g), b(b), flashing(fl
 const Color* off = new Color (0, 0, 0);
 
 void SuperState::setup() {
-    SuperState::currentState = State::CALIBRATING;
+    SuperState::currentState = State::WAITING_TO_CALIBRATE;
     pinMode(SuperStateConstants::redPin, OUTPUT);
     pinMode(SuperStateConstants::greenPin, OUTPUT);
     pinMode(SuperStateConstants::bluePin, OUTPUT);

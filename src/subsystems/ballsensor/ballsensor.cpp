@@ -38,7 +38,7 @@ void BallSensor::setup() {
     for (int i = 0; i < BallSensorConstants::BALL_SENSORS; i++) {
         // fixes mapInputToOutput to proper index of [0, 23]
         ballSensorIndexArray[i] = mapInputToOutput(i + 1);
-        Serial.println("Ball Sensor Index: " + String(i) + " " + String(ballSensorIndexArray[i]));
+        // Serial.println("Ball Sensor Index: " + String(i) + " " + String(ballSensorIndexArray[i]));
     }
 
     float step = 0;
@@ -50,7 +50,7 @@ void BallSensor::setup() {
         sinVals[i] = sin(step * PI / 180);
         angles[i] = step;
         step += increment;
-        Serial.println("i: " + String(i) + " cosVal: " + cosVals[i] + " sinVal: " + sinVals[i]);
+        // Serial.println("i: " + String(i) + " cosVal: " + cosVals[i] + " sinVal: " + sinVals[i]);
     }
 };
 

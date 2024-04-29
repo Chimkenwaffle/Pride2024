@@ -62,6 +62,7 @@ namespace LineSensorConstants {
     const int LINE_READ_MIN = 20;
     const int LINE_READ_MAX = 900;
     const int NUM_SENSORS_PICKUP_THRESHOLD = LINE_SENSORS / 2;
+    const int SENSOR_OFFSET[24] = {50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50};
 }
 
 namespace SPIBus {
