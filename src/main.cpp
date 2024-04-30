@@ -11,16 +11,12 @@
 
 using namespace PrideUtils;
 
-Adafruit_MCP3008 adc4;
-Adafruit_MCP3008 adc5;
-Adafruit_MCP3008 adc6;
-
 const double rotation_P = .4;
 const double rotation_D = 0.1;
 
 void setup() {
   
-  Serial.begin(9600);
+  Serial.begin(115200);
   delay(250);
 
   if (CrashReport) {
@@ -40,15 +36,16 @@ void setup() {
   LineSensor::readThresholds();
 
   // setup failed! 
-  // if (!success) {
-  //   SuperState::changeState(State::INIT_FAILED);
-  //   while (1) {
-  //     SuperState::update();
-  //     Serial.println("[SETUP] Failed to initialize gyro");
-  //     delay(1000);
-  //   }
-  // }
+  if (!success) {
+    SuperState::changeState(State::INIT_FAILED);
+    while (1) {
+      SuperState::update();
+      Serial.println("[SETUP] Failed to initialize gyro");
+      delay(1000);
+    }
+  }
 
+  SET_VECTOR_PRIORITY(AlgorithmName::ATTACK, VectorPriority::MEDIUM_PRIORITY);
 
   while (Switches::getSwitchOne() == false) {
     SuperState::changeState(State::WAITING_TO_CALIBRATE);
@@ -92,15 +89,15 @@ void setup() {
 
       SuperState::changeState(State::WAITING_TO_SPIN_CALIBRATE);
       SuperState::update();
-      while(Switches::getSwitchThree() == false) {
+      while(Switches::getSwitchTwo() == false) {
         delay(100);
       }
 
       int maxWhiteReadings[24] = {0};
-      if(Switches::getSwitchThree() == true) {
+      if(Switches::getSwitchTwo() == true) {
         SuperState::changeState(State::SPIN_CALIBRATING);
         Serial.println("[SETUP] Starting Spinning Calibration");
-        while(Switches::getSwitchThree() == true) {
+        while(Switches::getSwitchTwo() == true) {
           SuperState::update();
           Drivetrain::rotate(.2);
           LineSensor::read();
@@ -162,19 +159,19 @@ void setup() {
   }
   Serial.println("[SETUP] Calibrated");
   delay(200);
-
+  
   SuperState::changeState(State::READY);
 }
 
 float dampen(float x) {
-  return fmin(1.0, 0.048 * pow(M_E, 3.2 * x));
+  return fmin(1.0, 0.048 * pow(M_E, 3.6 * x));
   // return fmax(0, fmin(1, 0.02 * pow(1.0001, 20 * (x - 10))));
 }
 
 
 float getBallOffset(float inAngle) {
   float formulaAngle = inAngle > 180.0 ? 360 - inAngle : inAngle;
-  return (fmin(0.05 * pow(M_E, 0.15 * formulaAngle + 1.2), 90));
+  return (fmin(0.05 * pow(M_E, 0.15 * formulaAngle + 1.8), 90));
 }
 
 AngleRad prev_robo_angle = 0;
@@ -182,52 +179,44 @@ AngleRad prev_robo_angle = 0;
 void loop() {
   SuperState::update();
 
-  // BallSensor::getBallAngleVector(true);
+  BallSensor::getBallAngleVector(true);
   
-  // AngleDeg cartesianBallAngle = BallSensor::ball_angle_deg;
-  // AngleDeg forwardAngle = cartesianBallAngle.forwardAngle();
-  // // Serial.print("Ball Angle: " + String(cartesianBallAngle.toString() + " Forwared Angle: " + forwardAngle.toString()));
+  AngleDeg cartesianBallAngle = BallSensor::ball_angle_deg;
+  AngleDeg forwardAngle = cartesianBallAngle.forwardAngle();
 
-  // float offset = getBallOffset(fabs(forwardAngle.value));
+  float offset = getBallOffset(fabs(forwardAngle.value));
 
-  // // float finalAngle = forwardAngle.value > 0 ? forwardAngle.value + offset : forwardAngle.value - offset;
+  AngleDeg finalAngle = forwardAngle > 0 ? forwardAngle + offset * dampen(BallSensor::ball_mag) : forwardAngle - offset * dampen(BallSensor::ball_mag);
 
-  // AngleDeg finalAngle = forwardAngle > 0 ? forwardAngle + offset * dampen(BallSensor::ball_mag) : forwardAngle - offset * dampen(BallSensor::ball_mag);
+  Vector driveAngle = finalAngle.cartesianAngle().toVector();
 
-  // float driveAngle = finalAngle.cartesianAngle().toRad().value;
 
-  // // Serial.println("Final Angle: " + finalAngle.toString() + " C FInal Angle: " + finalAngle.cartesianAngle().toString() + " Offset: " + String(offset));
+  AngleRad roboAngle = Gyro::getHeading(false);
 
-  // // change to angleDeg or angleRad to confirm
-  // AngleRad roboAngle = Gyro::getHeading(false);
+  float rotation = max(-.2, min(.2, roboAngle.value * rotation_P + (roboAngle.value - prev_robo_angle.value) * rotation_D));
 
-  // // can modify the .2 value 
-  // // might need to swap roboAgle & prev_robo_angle 
-  // float rotation = max(-.2, min(.2, roboAngle.value * rotation_P + (roboAngle.value - prev_robo_angle.value) * rotation_D));
-  // Serial.println(roboAngle.toDeg().toString() +" : " + String(rotation));
-  // // Serial.println(String(roboAngle) + " : " + String(rotation));
-
-  // // Serial.println(" : " + String(rotation));
-
-  // // Serial.print(BallSensor::ballValues[6]);
-
-  // // Serial.print(" : ");
-
-  // // Serial.println(BallSensor::ball_mag);
-
-  // if (BallSensor::ballValues[6] > 600 && BallSensor::ball_mag > .85) {
-  //   SuperState::changeState(State::READY);
-  //   Drivetrain::drive(3.14/2, .5, 0);
-  // } else {
-  //   SuperState::changeState(State::INIT_FAILED);
+  if (BallSensor::ballValues[6] > 600 && BallSensor::ball_mag > .85) {
+    SuperState::changeState(State::ATTACKING_WITH_BALL);
+    Drivetrain::setVector(ATTACK, Vector(0, 1));
+  // //   Drivetrain::drive(3.14/2, .5, 0);
+  } else {
+    SuperState::changeState(State::ATTACKING);
+    Drivetrain::setVector(ATTACK, driveAngle);
   //   Drivetrain::drive(driveAngle, .5, rotation);
-  // }
+  }
+
+  // Serial.println("Ball Mag: " + String(BallSensor::ball_mag) + " 6: " + String(BallSensor::ballValues[6]));
 
   // Drivetrain::drive(2*3.14, .5, 0);
-  // prev_robo_angle = roboAngle;
+  prev_robo_angle = roboAngle;
+
+  Drivetrain::rotation = rotation;
 
   LineSensor::processLineSensors(true);
 
-  delay(1000/5);
+  Drivetrain::driveByVectors(SuperState::currentState == State::PICKED_UP ? 0 : 1.0);
+
+
+  // delay(1000/100);
 }
 

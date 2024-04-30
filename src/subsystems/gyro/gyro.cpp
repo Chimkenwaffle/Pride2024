@@ -14,6 +14,7 @@ Adafruit_BNO08x  bno08x(GyroConstants::gyroResetPin);
 sh2_SensorValue_t sensorValue;
 gyro_data Gyro::latest_data;
 gyro_data Gyro::offset = {0, 0, 0};
+AngleRad Gyro::heading = AngleRad(0);
 
 bool gyroEnabled = false;
 
@@ -78,7 +79,7 @@ AngleRad Gyro::getHeading(bool printOuts) {
         break;
     }
     Gyro::latest_data = {ypr.yaw - Gyro::offset.yaw, ypr.pitch - Gyro::offset.pitch, ypr.roll - Gyro::offset.roll};
-    Serial.println("[GYRO] Yaw: " + String(Gyro::latest_data.yaw) + ", Pitch: " + String(Gyro::latest_data.pitch) + ", Roll: " + String(Gyro::latest_data.roll));
+    // Serial.println("[GYRO] Yaw: " + String(Gyro::latest_data.yaw) + ", Pitch: " + String(Gyro::latest_data.pitch) + ", Roll: " + String(Gyro::latest_data.roll));
   }
   float temp = Gyro::latest_data.yaw;
   while (temp < MathConstants::PRIDE_PI) {
@@ -87,7 +88,8 @@ AngleRad Gyro::getHeading(bool printOuts) {
   while (temp > MathConstants::PRIDE_PI) {
     temp -= MathConstants::PRIDE_PI * 2;
   }
-  return AngleRad(temp);
+  Gyro::heading = AngleRad(temp);
+  return Gyro::heading;
 }
 
 void Gyro::setReports(sh2_SensorId_t reportType, long report_interval) {

@@ -10,7 +10,10 @@ std::unordered_map<State, Color*> stateColors = {
     {WAITING_TO_SPIN_CALIBRATE, new Color(145, 8, 29)}, // magenta 
     {SPIN_CALIBRATING, new Color(145, 8, 29, true)}, // magenta flashing
     {READY, new Color(40, 85, 0, true)},   // green flashing
-    {PICKED_UP, new Color(0, 0, 255, false)}   // blue solid
+    {PICKED_UP, new Color(0, 0, 255, false)},   // blue solid
+    {ATTACKING, new Color(255, 0, 123, true)}, // purple flashing
+    {ATTACKING_WITH_BALL, new Color(255, 0, 255, true)}, // purple flashing
+    {LINE_AVOIDING, new Color(0, 255, 255, true)} // cyan flashing
 };
 
 // Define the constructor of the Color class

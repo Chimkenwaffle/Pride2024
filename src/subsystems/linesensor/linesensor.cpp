@@ -12,10 +12,7 @@ int lineSensorIndexArray[LineSensorConstants::LINE_SENSORS];
 Vector LineSensor::lineSensorVectors[LineSensorConstants::LINE_SENSORS] = {Vector(0,0)};
 Vector LineSensor::previousVector = Vector(0,0);
 Vector LineSensor::currentVector = Vector(0,0);
-Vector LineSensor::storedVector = Vector(0,0);
-Vector LineSensor::previousDriveDirection = Vector(0,0);
-bool LineSensor::held180Case = false;
-bool LineSensor::previousCase = false;
+AngleRad LineSensor::previousHeading = AngleRad(0);
 bool LineSensor::isOver = false;
 bool LineSensor::firstTime = true;
 
@@ -35,6 +32,7 @@ int lineMapInputToOutput(int input) {
 }
 
 void LineSensor::setup() {
+    SET_VECTOR_PRIORITY(AlgorithmName::LINE_AVOID, VectorPriority::OVERRIDE_PRIORITY);
     adc4.begin(27, 11, 12, LineSensorConstants::CS4);
     adc5.begin(27, 11, 12, LineSensorConstants::CS5);
     adc6.begin(27, 11, 12, LineSensorConstants::CS6);
@@ -210,9 +208,10 @@ void LineSensor::processLineSensors(bool refreshValues) {
     if (pickupSensors > LineSensorConstants::NUM_SENSORS_PICKUP_THRESHOLD) {
         isPickedUp = true;
         SuperState::changeState(State::PICKED_UP);
+        return;
     } else {
         isPickedUp = false;
-        SuperState::changeState(State::READY);
+        // SuperState::changeState(State::READY);
     }
 
     int bestI = 0;
@@ -239,54 +238,51 @@ void LineSensor::processLineSensors(bool refreshValues) {
     }
 
     if (bestI + bestJ != 0) {
+        // we are on a line!
         currentVector = lineSensorVectors[bestI] + lineSensorVectors[bestJ];
-        currentVector = currentVector.flip();
-
-        Vector driveDirection = currentVector;
-        if (currentVector.isZero()) {
-            driveDirection = previousDriveDirection;
-            Serial.print("180 Case: ");
-            held180Case = true;
-            if (!previousCase) {
-                storedVector = previousDriveDirection;
-            }
-            if (previousCase && held180Case) {
-                driveDirection = storedVector;
-            }
-        } 
-
-        previousCase = held180Case;
-        held180Case = false;
         
-        Serial.print(String(!currentVector.isZero()) + " ");
-        Serial.print("Current Vector: " + String(currentVector.toAngleDeg().value) + " Previous Vector: " + String(previousVector.toAngleDeg().value));
+        if (previousVector.isZero()) {
+            previousVector = currentVector;
+        }
+
+        if (currentVector.isZero() || lineSensorGroups == 3) {
+            // 180 Case. Use previous vector
+            // TODO: Fix angle difference
+            AngleRad changeInHeading = Gyro::heading - previousHeading;
+            currentVector = (changeInHeading + previousVector.toAngleRad()).toVector();
+            previousVector = currentVector;
+            previousHeading = Gyro::heading;
+            // Serial.println("180 Case: " + String(changeInHeading.value));
+        } else {
+            previousHeading = Gyro::heading;
+        }
         
-        if (!firstTime) {
-            const float difference = currentVector.toAngleDeg().angleDifference(previousVector.toAngleDeg()).value;
+        if (!isOver) {
+            // we are in the field so we need to flip our vector sum to point torward the field
+            currentVector = currentVector.flip();
+        }
+
+        const float difference = currentVector.toAngleDeg().angleDifference(previousVector.toAngleDeg()).value;
+        if (!firstTime || lineSensorGroups == 3) {
             if (abs(difference) > 90) {
                 isOver = !isOver;
+                currentVector = currentVector.flip();
             }
         }
 
-        if (isOver) {
-            driveDirection = driveDirection.flip();
-            if (currentVector.isZero()) {
-                driveDirection = driveDirection.flip();
-            }
-        }
-
-        Serial.print(" Over: " + String(isOver));
-        Serial.print(" Drive Direction: ");
-        Serial.println(driveDirection.toAngleDeg().value);
-
-        Drivetrain::drive(driveDirection.toAngleRad().value, .5, 0);
-
-        previousVector = currentVector;
-        previousDriveDirection = driveDirection;
+        // Drivetrain::drive(currentVector.toAngleRad().value, .5, 0);
+        Drivetrain::setVector(LINE_AVOID, currentVector);
 
         firstTime = false;
+        previousVector = currentVector;
+        // Serial.println("I: " + String(bestI) + " J:" + String(bestJ) + "Difference: " + String(difference) +  " Current Vector: " + String(currentVector.toAngleDeg().value) + " Previous Vector: " + String(previousVector.toAngleDeg().value) + " IsOver: " + String(isOver));
     } else {
+        if (firstTime == false) {
+            Serial.println("NO Line Detected");
+        }
         firstTime = true;
-        Drivetrain::stop();
+        Drivetrain::setVector(LINE_AVOID, Vector(0, 0));
+        // Serial.println("No Line Detected");
+        // Drivetrain::stop();
     }
 }

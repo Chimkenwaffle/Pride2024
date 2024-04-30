@@ -5,6 +5,12 @@ Motor* Drivetrain::frontRightMotor = nullptr;
 Motor* Drivetrain::backRightMotor = nullptr;
 Motor* Drivetrain::backLeftMotor = nullptr;
 
+Vector Drivetrain::currentVector = Vector(0, 0);
+unordered_map<int, std::pair<VectorPriority, Vector>>
+    Drivetrain::vectorMap =
+        unordered_map<int, std::pair<VectorPriority, Vector>>();
+float Drivetrain::rotation = 0;
+
 void Drivetrain::setup() {
     Drivetrain::frontLeftMotor = new Motor(DrivetrainConstants::bluePin3, DrivetrainConstants::greenPin3, true);
     Drivetrain::frontRightMotor = new Motor(DrivetrainConstants::bluePin4, DrivetrainConstants::greenPin4);
@@ -14,6 +20,52 @@ void Drivetrain::setup() {
     Drivetrain::frontRightMotor->setup();
     Drivetrain::backRightMotor->setup();
     Drivetrain::backLeftMotor->setup();
+}
+
+void Drivetrain::setVector(AlgorithmName name, Vector vec) {
+    Drivetrain::vectorMap[name].second = vec;
+}
+
+void Drivetrain::setPriority(AlgorithmName name, VectorPriority priority) {
+    Drivetrain::vectorMap[name].first = priority;
+}
+
+void Drivetrain::driveByVectors(float power) {
+    currentVector = Vector(0, 0);
+    bool overidden = false;
+    for (auto& process : Drivetrain::vectorMap) {
+        switch (process.second.first) {
+            case VectorPriority::LOW_PRIORITY:
+                currentVector += process.second.second * .5;
+                break;
+            case VectorPriority::MEDIUM_PRIORITY:
+                currentVector += process.second.second * 1;
+                break;
+            case VectorPriority::HIGH_PRIORITY:
+                currentVector += process.second.second * 2;
+                break;
+            case VectorPriority::OVERRIDE_PRIORITY: 
+                if (!process.second.second.isZero()) {
+                    currentVector = process.second.second;
+                    overidden = true;
+                }
+                break;
+            
+        }
+        if (overidden) {
+            break;
+        }
+    }
+
+    // Serial.println(overidden);
+
+    if (currentVector.isZero()) {
+        Drivetrain::rotate(Drivetrain::rotation);
+    }
+
+    AngleRad angle = currentVector.toAngleRad();
+
+    Drivetrain::drive(angle.value, power, rotation);
 }
 
 /**

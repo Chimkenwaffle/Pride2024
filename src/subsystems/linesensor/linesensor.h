@@ -8,8 +8,9 @@
 #include <SPI.h>
 #include "constants.hpp"
 #include "../superstate/superstate.h"
-#include "PrideUtils.h"
 #include "../drivetrain/drivetrain.h"
+#include "../gyro/gyro.h"
+#include "PrideUtils.h"
 
 using namespace std;
 using namespace PrideUtils;
@@ -29,10 +30,7 @@ class LineSensor {
         static Vector lineSensorVectors[LineSensorConstants::LINE_SENSORS];
         static Vector previousVector;
         static Vector currentVector;
-        static Vector storedVector;
-        static Vector previousDriveDirection;
-        static bool held180Case;
-        static bool previousCase;
+        static AngleRad previousHeading;
         static bool isOver;
         static bool firstTime;
         static void setup();

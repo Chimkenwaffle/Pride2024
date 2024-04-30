@@ -128,6 +128,14 @@ namespace PrideUtils {
     return "AngleRad: " + String(this->value);
   }
 
+  AngleRad AngleRad::operator+(AngleRad a) {
+    return AngleRad(value + a.value);
+  }
+
+  AngleRad AngleRad::operator-(AngleRad a) {
+    return AngleRad(value - a.value);
+  }
+
   Vector::Vector(float x, float y) {
     this->x = x;
     this->y = y;

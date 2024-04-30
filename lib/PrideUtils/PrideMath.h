@@ -46,6 +46,9 @@ namespace PrideUtils {
         AngleDeg toDeg();
         Vector toVector();
         String toString();
+
+        AngleRad operator+(AngleRad a);
+        AngleRad operator-(AngleRad a);
     };
 
     struct Vector {
