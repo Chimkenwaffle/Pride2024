@@ -5,18 +5,14 @@
 #include "subsystems/ballsensor/ballsensor.h"
 #include "subsystems/superstate/superstate.h"
 #include "subsystems/linesensor/linesensor.h"
-#include "subsystems/locationsensor/locationsensor.h"
-#include "algorithms/defense.h"
-#include "algorithms/attack.h"
 #include "constants.hpp"
 #include <Adafruit_MCP3008.h>
 #include <PrideUtils.h>
-#include <TeensyThreads.h>
 
 using namespace PrideUtils;
 
-// const double rotation_P = .4;
-// const double rotation_D = 0.1;
+const double rotation_P = .4;
+const double rotation_D = 0.1;
 
 void setup() {
   
@@ -36,11 +32,8 @@ void setup() {
   Drivetrain::setup();
   Switches::setup();
   BallSensor::setup();
-  LocationSensor::setup();
   LineSensor::setup();
   LineSensor::readThresholds();
-
-  LocationSensor::startThread();
 
   // setup failed! 
   if (!success) {
@@ -48,15 +41,11 @@ void setup() {
     while (1) {
       SuperState::update();
       Serial.println("[SETUP] Failed to initialize gyro");
-      Gyro::setup();
       delay(1000);
     }
   }
 
   SET_VECTOR_PRIORITY(AlgorithmName::ATTACK, VectorPriority::MEDIUM_PRIORITY);
-
-  DefenseAlgorithm::init();
-  // Attack::init();
 
   while (Switches::getSwitchOne() == false) {
     SuperState::changeState(State::WAITING_TO_CALIBRATE);
@@ -143,13 +132,8 @@ void setup() {
         if(maxGreenReadings[i] > maxWhiteReadings[i]) {
           greenGreaterThanWhite = true;
         }
-        int difference = abs(maxGreenReadings[i] - maxWhiteReadings[i]);
-        LineSensor::thresholds[i] = maxGreenReadings[i] + difference / 2 ;
+        LineSensor::thresholds[i] = (maxGreenReadings[i] + maxWhiteReadings[i]) / 2;
       }
-
-      LineSensor::thresholds[17] = LineSensor::thresholds[17] - 10;
-      LineSensor::thresholds[9] = LineSensor::thresholds[9] - 10;
-      LineSensor::thresholds[7] = LineSensor::thresholds[7] - 10;
 
       Serial.print("Threshold Values: ");
       for(int i = 0; i < LineSensorConstants::LINE_SENSORS; i++) {
@@ -179,16 +163,56 @@ void setup() {
   SuperState::changeState(State::READY);
 }
 
+float dampen(float x) {
+  return fmin(1.0, 0.048 * pow(M_E, 3.6 * x));
+  // return fmax(0, fmin(1, 0.02 * pow(1.0001, 20 * (x - 10))));
+}
+
+
+float getBallOffset(float inAngle) {
+  float formulaAngle = inAngle > 180.0 ? 360 - inAngle : inAngle;
+  return (fmin(0.05 * pow(M_E, 0.15 * formulaAngle + 1.8), 90));
+}
+
+AngleRad prev_robo_angle = 0;
+
 void loop() {
   SuperState::update();
-  // LineSensor::read();
-  // LineSensor::preProcessLineSensors();
-  DefenseAlgorithm::loop(LocationSensor::threadID);
-  // Attack::loop(LocationSensor::threadID);
-  // Drivetrain::frontLeftMotor->writeAndSetPower(1);
-  // Drivetrain::frontRightMotor->writeAndSetPower(.2);
-  // Drivetrain::backRightMotor->writeAndSetPower(-.2);
-  // Drivetrain::backLeftMotor->writeAndSetPower(-1);
-  // Drivetrain::drive(0, .2, 0);
-  // Drivetrain::print();
+
+  BallSensor::getBallAngleVector(true);
+  
+  AngleDeg cartesianBallAngle = BallSensor::ball_angle_deg;
+  AngleDeg forwardAngle = cartesianBallAngle.forwardAngle();
+
+  float offset = getBallOffset(fabs(forwardAngle.value));
+
+  AngleDeg finalAngle = forwardAngle > 0 ? forwardAngle + offset * dampen(BallSensor::ball_mag) : forwardAngle - offset * dampen(BallSensor::ball_mag);
+
+  Vector driveAngle = finalAngle.cartesianAngle().toVector();
+
+
+  AngleRad roboAngle = Gyro::getHeading(false);
+
+  float rotation = max(-.2, min(.2, roboAngle.value * rotation_P + (roboAngle.value - prev_robo_angle.value) * rotation_D));
+
+  if (BallSensor::ballValues[6] > 600 && BallSensor::ball_mag > .85) {
+    SuperState::changeState(State::ATTACKING_WITH_BALL);
+    Drivetrain::setVector(ATTACK, Vector(0, 1));
+  // //   Drivetrain::drive(3.14/2, .5, 0);
+  } else {
+    SuperState::changeState(State::ATTACKING);
+    Drivetrain::setVector(ATTACK, driveAngle);
+  //   Drivetrain::drive(driveAngle, .5, rotation);
+  }
+  prev_robo_angle = roboAngle;
+
+  Drivetrain::rotation = rotation;
+
+  LineSensor::processLineSensors(true);
+
+  Drivetrain::driveByVectors(SuperState::currentState == State::PICKED_UP ? 0 : 1.0);
+
+
+  // delay(1000/100);
 }
+

@@ -10,6 +10,7 @@ unordered_map<int, std::pair<VectorPriority, Vector>>
     Drivetrain::vectorMap =
         unordered_map<int, std::pair<VectorPriority, Vector>>();
 float Drivetrain::rotation = 0;
+float Drivetrain::power = 0;
 
 void Drivetrain::setup() {
     Drivetrain::frontLeftMotor = new Motor(DrivetrainConstants::bluePin3, DrivetrainConstants::greenPin3, true);
@@ -30,7 +31,7 @@ void Drivetrain::setPriority(AlgorithmName name, VectorPriority priority) {
     Drivetrain::vectorMap[name].first = priority;
 }
 
-void Drivetrain::driveByVectors(float power) {
+void Drivetrain::driveByVectors() {
     currentVector = Vector(0, 0);
     bool overidden = false;
     for (auto& process : Drivetrain::vectorMap) {
@@ -65,7 +66,10 @@ void Drivetrain::driveByVectors(float power) {
 
     AngleRad angle = currentVector.toAngleRad();
 
-    Drivetrain::drive(angle.value, power, rotation);
+    Serial.print("Drive angle: ");
+    Serial.println(angle.toDeg().value);
+
+    Drivetrain::drive(angle.value, SuperState::currentState == State::PICKED_UP ? 0 : power, rotation);
 }
 
 /**
@@ -95,23 +99,63 @@ void Drivetrain::drive(double angle_rad, double power, double rotation) {
     // Calculate x and y components from the angle
 
     // to fix front and back being reversed
-    angle_rad -= MathConstants::PRIDE_PI / 2;  // Subtract π/2 radians (90 degrees)
+    // angle_rad -= MathConstants::PRIDE_PI / 2;  // Subtract π/2 radians (90 degrees)
 
     double x = cos(angle_rad);
     double y = sin(angle_rad);
 
     // Calculate individual motor speeds based on desired x, y, rotation, and power
-    double cos42 = cos(42.0 * M_PI / 180.0);
-    double sin42 = sin(42.0 * M_PI / 180.0);
-    double velFL = power * ((cos42 * x - sin42 * y) + rotation);
-    double velFR = power * ((cos42 * x + sin42 * y) - rotation);
-    double velBR = power * ((cos42 * x - sin42 * y) - rotation);
-    double velBL = power * ((cos42 * x + sin42 * y) + rotation);
+    double cos42 = cos(42.0 * MathConstants::PRIDE_PI / 180.0);
+    double sin42 = sin(42.0 * MathConstants::PRIDE_PI / 180.0);
+    float velFL = ((cos42 * y + sin42 * x) + rotation);
+    float velFR = ((cos42 * y - sin42 * x) - rotation);
+    float velBR = ((cos42 * y + sin42 * x) - rotation);
+    float velBL = ((cos42 * y - sin42 * x) + rotation);
+
+    float velMax = max(max(abs(velFL), abs(velFR)), max(abs(velBR), abs(velBL)));
+
+    velFL = velFL / velMax;
+    velFR = velFR / velMax;
+    velBR = velBR / velMax;
+    velBL = velBL / velMax;
+
+    velFL *= power;
+    velFR *= power;
+    velBR *= power;
+    velBL *= power;
+
+    velFL = fclamp(velFL, -1, 1);
+    velFR = fclamp(velFR, -1, 1);
+    velBR = fclamp(velBR, -1, 1);
+    velBL = fclamp(velBL, -1, 1);
+
+
+    velFL = (float)(lround(velFL * 1000) / 1000.0);
+    velFR = (float)(lround(velFR * 1000) / 1000.0);
+    velBR = (float)(lround(velBR * 1000) / 1000.0);
+    velBL = (float)(lround(velBL * 1000) / 1000.0);
+
 
     Drivetrain::frontLeftMotor->writeAndSetPower(velFL);
     Drivetrain::frontRightMotor->writeAndSetPower(velFR);
     Drivetrain::backLeftMotor->writeAndSetPower(velBL);
     Drivetrain::backRightMotor->writeAndSetPower(velBR);
+}
+
+const float wheelAngleRad = 42.0 * M_PI / 180.0;
+double cos42 = cos(42.0 * M_PI / 180.0);
+double sin42 = sin(42.0 * M_PI / 180.0);
+
+void Drivetrain::vectorDrive(Vector vec, float power, float rotation) {
+    // Serial.print("Vector Traveled: ");
+    // Serial.print(vec.toAngleDeg().value);
+    // Serial.print(" Power: ");
+    // Serial.println(power);
+    if (vec.isZero()) {
+        Drivetrain::rotate(rotation);
+        return;
+    }
+    Drivetrain::drive(vec.toAngleRad().value, power, rotation);
 }
 
 void Drivetrain::stop() {

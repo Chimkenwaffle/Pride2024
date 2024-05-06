@@ -8,6 +8,9 @@
 
 namespace PrideUtils {
 
+    float fclamp(float value, float min, float max);
+
+    struct fPDController;
     struct AngleRad;
     struct Vector;
 
@@ -59,12 +62,16 @@ namespace PrideUtils {
         Vector();
 
         Vector operator+(Vector const& a);
+        AngleRad operator+(const AngleRad other);
         Vector operator-(Vector const& a);
         Vector operator*(float const& f);
         Vector operator/(float const& f);
         Vector operator+=(const Vector other);
+        Vector operator+=(const AngleRad other);
         Vector operator-=(const Vector other);
         void operator=(Vector const& other);
+
+        AngleRad angleBetween(Vector other);
 
         float magnitude();
         AngleRad toAngleRad();
@@ -74,6 +81,16 @@ namespace PrideUtils {
         Vector flip();
         bool isZero();
         
+    };
+
+    struct fPDController {
+        float p;
+        float d;
+        float lastError;
+
+        fPDController(float p, float d);
+
+        float update(float error);
     };
 
 }

@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include <unordered_map>
 #include "motor/motor.h"
+#include "../superstate/superstate.h"
 #include "PrideUtils.h"
 #include "constants.hpp"
 
@@ -36,12 +37,14 @@ class Drivetrain {
         static Vector currentVector;
         static unordered_map<int, std::pair<VectorPriority, Vector>> vectorMap;
         static float rotation;
+        static float power;
 
         static void setup();
         static void setVector(AlgorithmName name, Vector vec);
         static void setPriority(AlgorithmName name, VectorPriority priority);
-        static void driveByVectors(float power);
+        static void driveByVectors();
         static void drive(double angle_rad, double power, double rotation);
+        static void vectorDrive(Vector vec, float power, float rotation);
         static void rotate(double rotation);
         static void print();
         static void stop();

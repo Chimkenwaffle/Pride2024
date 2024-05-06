@@ -39,7 +39,7 @@ void Gyro::setOrigin() {
   }
 
   while (1) {
-    Gyro::getHeading(false);
+    Gyro::getHeading();
     if (Gyro::latest_data.yaw != 0 || Gyro::latest_data.pitch != 0 || Gyro::latest_data.roll != 0) {
       Serial.println("[GYRO] Origin set");
       Gyro::offset = Gyro::latest_data;
@@ -54,16 +54,18 @@ void Gyro::setOrigin() {
  * 
  * @return AngleRad 
 */
-AngleRad Gyro::getHeading(bool printOuts) {
+AngleRad Gyro::getHeading() {
   if (!gyroEnabled) {
-    if (printOuts)
+    #ifdef DEBUG
       Serial.println("[GYRO] Gyro not enabled, using 0, 0, 0");
+    #endif
     return AngleRad(0);
   }
 
   if (bno08x.wasReset()) {
-    if (printOuts)
+    #ifdef DEBUG
       Serial.println("[GYRO] BNO08x was reset");
+    #endif
     setReports(reportType, reportIntervalUs);
   }
 
@@ -79,7 +81,9 @@ AngleRad Gyro::getHeading(bool printOuts) {
         break;
     }
     Gyro::latest_data = {ypr.yaw - Gyro::offset.yaw, ypr.pitch - Gyro::offset.pitch, ypr.roll - Gyro::offset.roll};
-    // Serial.println("[GYRO] Yaw: " + String(Gyro::latest_data.yaw) + ", Pitch: " + String(Gyro::latest_data.pitch) + ", Roll: " + String(Gyro::latest_data.roll));
+    #ifdef DEBUG
+      Serial.println("[GYRO] Yaw: " + String(Gyro::latest_data.yaw) + ", Pitch: " + String(Gyro::latest_data.pitch) + ", Roll: " + String(Gyro::latest_data.roll));
+    #endif
   }
   float temp = Gyro::latest_data.yaw;
   while (temp < MathConstants::PRIDE_PI) {

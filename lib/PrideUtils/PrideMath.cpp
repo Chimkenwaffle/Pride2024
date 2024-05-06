@@ -5,6 +5,22 @@ const float PRIDE_PI = 3.14159;
 using namespace std;
 namespace PrideUtils {
 
+  float fclamp(float value, float min, float max) {
+    return value < min ? min : (value > max ? max : value);
+  }
+
+  fPDController::fPDController(float p, float d) {
+    this->p = p;
+    this->d = d;
+    this->lastError = 0;
+  }
+
+  float fPDController::update(float error) {
+    float derivative = error - this->lastError;
+    this->lastError = error;
+    return this->p * error + this->d * derivative;
+  }
+
   /**
    * @brief Construct a new Angle Deg:: Angle Deg object
   */
@@ -103,19 +119,50 @@ namespace PrideUtils {
   }
 
   AngleRad AngleRad::forwardAngle() {
-    return this->toDeg().forwardAngle().toRad();
+    float angle = fmod((2.5*PRIDE_PI - this->value), 2*PRIDE_PI);
+    if (angle > PRIDE_PI) {
+        angle -= 2*PRIDE_PI;
+    }
+    return AngleRad(angle);
   }
 
   AngleRad AngleRad::cartesianAngle() {
-    return this->toDeg().cartesianAngle().toRad();
+    float angle = fmod((2*PRIDE_PI - this->value + PRIDE_PI/2), 2*PRIDE_PI);
+    if (angle > PRIDE_PI) {
+      angle -= 2*PRIDE_PI;
+    }
+    return AngleRad(angle);
   }
 
   AngleRad AngleRad::angleDifference(AngleRad other) {
-    return this->toDeg().angleDifference(other.toDeg()).toRad();
+    auto angle1 = this->value;
+    auto angle2 = other.value;
+    if (angle1 < 0) {
+      angle1 += 2*PRIDE_PI;
+    }
+    if (angle1 > 2*PRIDE_PI) {
+      angle1 -= 2*PRIDE_PI;
+    }
+    if (angle2 < 0) {
+      angle2 += 2*PRIDE_PI;
+    }
+    if (angle2 > 2*PRIDE_PI) {
+      angle2 -= 2*PRIDE_PI;
+    }
+    float diff = fmod((angle2 - angle1 + PRIDE_PI), 2*PRIDE_PI) - PRIDE_PI;
+    return AngleRad{diff < -PRIDE_PI ? diff + 2*PRIDE_PI : diff};
   }
 
   AngleDeg AngleRad::toDeg() {
     return this->value * 180 / PRIDE_PI;
+  }
+
+  AngleRad AngleRad::operator+(AngleRad a) {
+    return AngleRad(value + a.value);
+  }
+
+  AngleRad AngleRad::operator-(AngleRad a) {
+    return AngleRad(value - a.value);
   }
 
   Vector AngleRad::toVector() {
@@ -126,14 +173,6 @@ namespace PrideUtils {
 
   String AngleRad::toString() {
     return "AngleRad: " + String(this->value);
-  }
-
-  AngleRad AngleRad::operator+(AngleRad a) {
-    return AngleRad(value + a.value);
-  }
-
-  AngleRad AngleRad::operator-(AngleRad a) {
-    return AngleRad(value - a.value);
   }
 
   Vector::Vector(float x, float y) {
@@ -173,6 +212,11 @@ namespace PrideUtils {
     return Vector(x + a.x, y + a.y);
   }
 
+  AngleRad Vector::operator+(const AngleRad other) {
+    AngleRad vecAngle = this->toAngleRad();
+    return vecAngle + other;
+  }
+
   Vector Vector::operator-(Vector const& a) {
     return Vector(x - a.x, y - a.y);
   }
@@ -191,6 +235,13 @@ namespace PrideUtils {
     return *this;
   }
 
+  Vector Vector::operator+=(const AngleRad other) {
+    Vector otherVector = AngleRad(other.value).toVector();
+    x = x + otherVector.x;
+    y = y + otherVector.y;
+    return *this;
+  }
+
   Vector Vector::operator-=(const Vector other) {
     x = x - other.x;
     y = y - other.y;
@@ -200,6 +251,15 @@ namespace PrideUtils {
   void Vector::operator=(Vector const& other) {
     this->x = other.x;
     this->y = other.y;
+  }
+
+  AngleRad Vector::angleBetween(Vector other) {
+    // Calculate the angle using atan2
+    float angleRad = atan2(other.y, other.x) - atan2(y, x);
+
+    // Normalize the angle to be between -180 and 180 degrees
+    angleRad = fmod(angleRad + PRIDE_PI, 2 * PRIDE_PI) - PRIDE_PI;
+    return AngleRad(angleRad);
   }
 
   Vector Vector::flip() {

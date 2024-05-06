@@ -21,7 +21,7 @@ class Gyro {
     static bool setup();
     static void setOrigin();
     static void reset();
-    static AngleRad getHeading(bool printOuts = true);
+    static AngleRad getHeading();
     static gyro_data latest_data;
   private:
     static void setReports(sh2_SensorId_t reportType, long report_interval);       

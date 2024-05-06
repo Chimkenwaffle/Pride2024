@@ -4,6 +4,8 @@
 
 //  File Name : LibConstants.hpp    Purpose : Global Constants for Lib Utils
 
+// #define DEBUG true
+
 namespace MathConstants
 {
     const float PRIDE_PI = 3.14159;
@@ -53,6 +55,7 @@ namespace BallSensorConstants {
     const int BALL_SENSORS = 24;
 }
 
+// #define DEBUG_LINE_SENSOR true
 namespace LineSensorConstants {
     const int CS4 = 24;
     const int CS5 = 10;
@@ -62,13 +65,25 @@ namespace LineSensorConstants {
     const int LINE_READ_MIN = 20;
     const int LINE_READ_MAX = 900;
     const int NUM_SENSORS_PICKUP_THRESHOLD = LINE_SENSORS / 2;
-    const int SENSOR_OFFSET[24] = {50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50};
+    // const int SENSOR_OFFSET[24] = {50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50};
 }
 
 namespace SPIBus {
     const int MOSI = 11;
     const int MISO = 12;
     const int SCK = 13;
+}
+
+// #define DEBUG_LOCATION_SENSOR true
+namespace LocationSensorConstants {
+    const int ECHO_PIN_RIGHT = 40;
+    const int ECHO_PIN_FRONT = 39;
+    const int ECHO_PIN_LEFT = 38;
+    const int ECHO_PIN_BACK = 37;
+    const int TRIG_PIN_BACK = 36;
+    const int TRIG_PIN_LEFT = 35;
+    const int TRIG_PIN_FRONT = 34;
+    const int TRIG_PIN_RIGHT = 33;
 }
 
 #endif
