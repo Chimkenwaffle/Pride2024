@@ -15,7 +15,7 @@ float Drivetrain::power = 0;
 void Drivetrain::setup() {
     Drivetrain::frontLeftMotor = new Motor(DrivetrainConstants::bluePin3, DrivetrainConstants::greenPin3, true);
     Drivetrain::frontRightMotor = new Motor(DrivetrainConstants::bluePin4, DrivetrainConstants::greenPin4);
-    Drivetrain::backRightMotor = new Motor(DrivetrainConstants::bluePin, DrivetrainConstants::greenPin, true);
+    Drivetrain::backRightMotor = new Motor(DrivetrainConstants::bluePin, DrivetrainConstants::greenPin);
     Drivetrain::backLeftMotor = new Motor(DrivetrainConstants::bluePin2, DrivetrainConstants::greenPin2, true);
     Drivetrain::frontLeftMotor->setup();
     Drivetrain::frontRightMotor->setup();
@@ -68,8 +68,9 @@ void Drivetrain::driveByVectors() {
 
     Serial.print("Drive angle: ");
     Serial.println(angle.toDeg().value);
+    Serial.println("Power: " + String(Drivetrain::power));
 
-    Drivetrain::drive(angle.value, SuperState::currentState == State::PICKED_UP ? 0 : power, rotation);
+    Drivetrain::drive(angle.value, SuperState::currentState == State::PICKED_UP ? 0 : 1.0, rotation);
 }
 
 /**
@@ -147,10 +148,10 @@ double cos42 = cos(42.0 * M_PI / 180.0);
 double sin42 = sin(42.0 * M_PI / 180.0);
 
 void Drivetrain::vectorDrive(Vector vec, float power, float rotation) {
-    // Serial.print("Vector Traveled: ");
-    // Serial.print(vec.toAngleDeg().value);
-    // Serial.print(" Power: ");
-    // Serial.println(power);
+    Serial.print("Vector Traveled: ");
+    Serial.print(vec.toAngleDeg().value);
+    Serial.print(" Power: ");
+    Serial.println(power);
     if (vec.isZero()) {
         Drivetrain::rotate(rotation);
         return;

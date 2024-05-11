@@ -183,12 +183,13 @@ void loop() {
   SuperState::update();
   // LineSensor::read();
   // LineSensor::preProcessLineSensors();
-  DefenseAlgorithm::loop(LocationSensor::threadID);
-  // Attack::loop(LocationSensor::threadID);
+  // DefenseAlgorithm::loop(LocationSensor::threadID);
+  Attack::loop(LocationSensor::threadID);
   // Drivetrain::frontLeftMotor->writeAndSetPower(1);
   // Drivetrain::frontRightMotor->writeAndSetPower(.2);
   // Drivetrain::backRightMotor->writeAndSetPower(-.2);
   // Drivetrain::backLeftMotor->writeAndSetPower(-1);
-  // Drivetrain::drive(0, .2, 0);
+  // Drivetrain::drive(3.14/2, .2, 0);
   // Drivetrain::print();
+  // delay(500);
 }

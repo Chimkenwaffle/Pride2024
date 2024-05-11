@@ -20,6 +20,7 @@ class DefenseAlgorithm {
         static fPDController rotationController;
         static void init();
         static void loop(int threadID);
+        static float distanceToBack;
         static AngleRad angleOffset;
         static AngleRad ballAngleError;
 };

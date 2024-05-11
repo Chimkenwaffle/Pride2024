@@ -2,7 +2,7 @@
 
 void Attack::init() {
     // Initialize the attack algorithm
-    Drivetrain::power = 0.75;
+    Drivetrain::power = 1.0;
 }
 
 float dampen(float x) {
@@ -19,6 +19,7 @@ float getBallOffset(float inAngle) {
 
 const double rotation_P = .4;
 const double rotation_D = 0.1;
+fPDController rotationController = fPDController(rotation_P, rotation_D);
 AngleRad prev_robo_angle = 0;
 void Attack::loop(int threadID) {
     BallSensor::getBallAngleVector(true);

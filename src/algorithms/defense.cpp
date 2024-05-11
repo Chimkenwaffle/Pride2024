@@ -2,17 +2,20 @@
 
 AngleRad DefenseAlgorithm::angleOffset = 0;
 AngleRad DefenseAlgorithm::ballAngleError = 0;
+float DefenseAlgorithm::distanceToBack = 33.0;
+
+fPDController ballMagControler = fPDController(0.1, 55);
 
 // x-axis
 fPDController DefenseAlgorithm::ballAngleController = 
-    fPDController(2, 4);
+    fPDController(14, 9.5);
 
 // rotation
 fPDController DefenseAlgorithm::rotationController =
-    fPDController(.36, 0.2);
+    fPDController(.46, 0.2);
 
 // y-axis
-fPDController wallController = fPDController(4, 5);
+fPDController wallController = fPDController(4.5, 3.5);
 
 void DefenseAlgorithm::init() {
     Serial.println("Defense Algorithm Initialized");
@@ -26,12 +29,11 @@ void DefenseAlgorithm::loop(int threadID) {
 
     float fYError = 0;
     if (fabs(rotation) < .2) {
-        fYError = -(LocationSensor::frBack - 33.0) / 30.0;
-        // Serial.println(fYError);
+        fYError = -(LocationSensor::frBack - distanceToBack) / 30.0;
 
         fYError = wallController.update(fYError);
 
-        fYError = fclamp(fYError, -0.35, 0.35);
+        fYError = fclamp(fYError, -1, 1);
     }
     Serial.print("FYERROR: ");
     Serial.println(fYError);
@@ -41,9 +43,17 @@ void DefenseAlgorithm::loop(int threadID) {
     AngleRad ballAngle = AngleRad(BallSensor::ball_angle_rad);
     DefenseAlgorithm::ballAngleError = ballAngle.forwardAngle();
 
+    Serial.print("Ball Angle ERROR: ");
+    Serial.println(DefenseAlgorithm::ballAngleError.value);
 
-    // Serial.print("Angle: ");
-    // Serial.println(ballAngle.toDeg().value);
+    if (fabs(DefenseAlgorithm::ballAngleError.value) < 0.05) {
+        Serial.println("HERE");
+        DefenseAlgorithm::ballAngleError = 0;
+    }
+
+
+    Serial.print("Ball Angle: ");
+    Serial.println(ballAngle.toDeg().value);
 
     float ballPower = DefenseAlgorithm::ballAngleError.value;
     ballPower = ballAngleController.update(ballPower);
@@ -89,15 +99,71 @@ void DefenseAlgorithm::loop(int threadID) {
 
         Serial.print("Direction: ");
         Serial.println(direction.toAngleDeg().value);
-
+        distanceToBack = 33.0;
     } else {
-        ballPower = 0;
+        // somehow we are not on the line :skull:
+        // ballPower = 0;
+        // distanceToBack = 25.0;
+        if (LocationSensor::leftGood) {
+            // left side D:
+            direction = Vector(1, 0);
+            ballPower = 0.5;
+        } else if (LocationSensor::rightGood) {
+            // right side D:
+            direction = Vector(-1, 0);
+            ballPower = 0.5;
+        } else {
+            // we in the middle :SKULL:
+            Vector right = Vector(2, 0);
+            Vector left = Vector(-2, 0);
+            if (LocationSensor::toBack < distanceToBack) {
+                right.y = .1;
+                left.y = .1;
+            } else {
+                right.y = -.1;
+                left.y = -.1;
+            }
+
+            AngleRad leftDifference = left.toAngleRad().angleDifference(ballAngle);
+            AngleRad rightDifference = right.toAngleRad().angleDifference(ballAngle);
+
+            if (fabs(leftDifference.value) < fabs(rightDifference.value)) {
+                direction = left;
+            } else {
+                direction = right;
+            }
+        }
     }
+
+    float ballAugment = fabs(ballMagControler.update(BallSensor::ball_mag));
+    ballAugment = fclamp(ballAugment, 0, 1);
+    Serial.print("Ball Augment: ");
+    Serial.println(ballAugment);
+    
 
     Serial.print("Ball Power: ");
     Serial.println(ballPower);
+    if (ballPower < 0) {
+        ballPower *= 2.0;
+    } else {
+        ballPower *= 1.4;
+    }
+    ballPower = fclamp(ballPower, -1, 1);
+    // if (LocationSensor::toBack < 25) {
+    //     Serial.println("TOO CLOSE");
+    //     ballPower = 0;
+    //     ballAugment = 0;
+    //     direction = Vector(0,0);
+    // }
 
-    float power = sqrt(rotation * rotation + fYError * fYError + ballPower * ballPower);
+    if (fabs(direction.y) > fabs(direction.x) && direction.y < 0) {
+        Serial.println("MORE Y THAN X");
+        direction = Vector(0, 0);
+        ballPower = 0;
+    }
+
+
+    float power = sqrt(rotation * rotation + fYError * fYError + ballPower * ballPower * (1+ ballAugment * ballAugment));
     power = fmin(1, power);
 
     if (LineSensor::checkIfPickedUp()) {
@@ -108,103 +174,3 @@ void DefenseAlgorithm::loop(int threadID) {
     Drivetrain::vectorDrive(Vector(0, fYError) + direction, power, rotation);
     Serial.println("---");
 }
-
-// void DefenseAlgorithm::loop(int threadID) {
-//     DefenseAlgorithm::angleOffset = Gyro::getHeading();
-//     BallSensor::read();
-//     BallSensor::getBallAngleVector(false);
-//     DefenseAlgorithm::ballAngleError = AngleRad(BallSensor::ball_angle_rad).forwardAngle();
-
-//     float rotation = rotationController.update(DefenseAlgorithm::angleOffset.value);
-//     rotation = fclamp(rotation, -0.3, 0.3);
-
-//     float xError = DefenseAlgorithm::ballAngleError.value;
-//     xError = ballAngleController.update(xError);
-//     xError = fclamp(xError, -1, 1);
-
-//     float fYError = 0;
-//     if (fabs(rotation) < .2) {
-
-//         // threads.suspend(threadID);
-//         int yError = -(LocationSensor::toBack - 31);
-//         // Serial.println(LocationSensor::toBack);
-//         // threads.restart(threadID);
-//         fYError = float(yError) / 30.0;
-//         fYError = wallController.update(fYError);
-//         if (fYError > .35) {
-//             fYError = .35;
-//         } else if (fYError < -.35) {
-//             fYError = -.35;
-//         }
-//     }
-//     LineSensor::read();
-//     LineSensor::preProcessLineSensors();
-//     // LineSensor::calculateLineSensorGroups();
-//     // bool onLine = LineSensor::checkIfOnLine();
-//     // Serial.println("On Line: " + String(onLine));
-//     if (LocationSensor::leftGood) {
-//         if (LocationSensor::toLeft < 55) {
-//             if (xError > 0) {
-//                 xError += .2;
-//             } else {
-//                 xError = .2;
-//             }
-//         } else if (xError < 0) {
-//             xError = 0;
-//         }
-//     } else if (LocationSensor::rightGood) {
-//         if (LocationSensor::toRight < 55) {
-//             if (xError < 0) {
-//                 xError += -.2;
-//             } else {
-//                 xError = -.2;
-//             }
-//             // xError += -.2;
-//         } else if (xError > 0) {
-//             xError = 0;
-//         }
-//     } 
-//     // Serial.println("Y Error: " + String(fYError) + " Rotation: " + String(rotation) + " xError: " + String(xError)); 
-//     // Serial.print("Ball Mag: " + String(BallSensor::ball_mag) + " Ball Angle: " + String(BallSensor::ball_angle_deg.value));
-
-//     if (xError == 0 && BallSensor::ball_mag < .3) {
-//         // we not moving at all rn ?!?!
-//         // center ourselves in the field on the x axis
-//         int toLeft = LocationSensor::frLeft;
-//         int toRight = LocationSensor::frRight;
-
-//         // Serial.println("To Left: " + String(toLeft) + " To Right: " + String(toRight));
-
-//         if (abs(toLeft - toRight) > 5) {
-//             // Serial.println("NOT CENTERED");
-//             // ok we are not centered
-//             if (toLeft > toRight) {
-//                 xError = -.2;
-//             } else {
-//                 xError = .2;
-//             }
-//         }
-//     }
-
-//     if (LineSensor::checkIfPickedUp()) {
-//         SuperState::changeState(State::PICKED_UP);
-//         Drivetrain::stop();
-//         return;
-//     } else {
-//         SuperState::changeState(State::READY);
-//     }
-//     // Serial.println("Error: " + String(DefenseAlgorithm::ballAngleError.value));
-
-//     // Vector lineSensorVector = LineSensor::simpleVectorSum();
-//     // LineSensor::calculateLineSensorGroups();
-//     // float magnitude = fclamp((lineSensorVector * (179.0 - float(LineSensor::lineSensorGroupData.closestAngle))/(5*179.0)).magnitude(), -.25, .25);
-//     // Serial.println("Line Sensor Vector: " + String(lineSensorVector.toAngleDeg().value) + " : " + String(magnitude));
-//     float power = fmin(1, fYError*fYError + rotation*rotation + xError*xError);
-//     // Serial.println("Power: " + String(power));
-//     if (power < .1) {
-//         power = 0;
-//     }
-//     // Serial.println(" Power: " + String(power) + " XError: " + String(xError));
-//     Drivetrain::vectorDrive(Vector(xError, fYError), power, rotation);
-// }
-

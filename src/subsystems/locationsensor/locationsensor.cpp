@@ -93,7 +93,7 @@ void LocationSensor::loop() {
             durationRight = pulseIn(LocationSensorConstants::ECHO_PIN_RIGHT, HIGH);
             distanceRight = (durationRight * 0.034 / 2);
             int temp = static_cast<int>(round(distanceLeft));
-            if (distanceLeft < 60 && distanceLeft != 0 && (abs(temp-toLeft) < 50)) {
+            if (distanceLeft < 60 && distanceLeft != 0) {
                 toLeft = temp;
                 leftGood = true;
             } else {
@@ -101,7 +101,7 @@ void LocationSensor::loop() {
             }
             frLeft = temp;
             temp = static_cast<int>(round(distanceRight));
-            if (distanceRight < 60 && distanceRight != 0 && (abs(temp-toRight) < 50)) {
+            if (distanceRight < 60 && distanceRight != 0) {
                 toRight = temp;
                 rightGood = true;
             } else {
