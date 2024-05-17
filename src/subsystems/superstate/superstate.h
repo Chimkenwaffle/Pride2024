@@ -15,7 +15,9 @@ enum State {
     ATTACKING,
     ATTACKING_WITH_BALL,
     LINE_AVOIDING,
-    PICKED_UP
+    PICKED_UP,
+    NO_BALL_FOUND,
+    FULL_POWER
 };
 
 class Color {

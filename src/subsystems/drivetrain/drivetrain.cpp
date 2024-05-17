@@ -148,10 +148,11 @@ double cos42 = cos(42.0 * M_PI / 180.0);
 double sin42 = sin(42.0 * M_PI / 180.0);
 
 void Drivetrain::vectorDrive(Vector vec, float power, float rotation) {
-    Serial.print("Vector Traveled: ");
-    Serial.print(vec.toAngleDeg().value);
-    Serial.print(" Power: ");
-    Serial.println(power);
+    // Serial.print(" Going: ");
+    // Serial.print(vec.toAngleDeg().value);
+    // Serial.print(" Power: ");
+    // Serial.println(power);
+    // return;
     if (vec.isZero()) {
         Drivetrain::rotate(rotation);
         return;

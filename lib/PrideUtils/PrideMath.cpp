@@ -9,16 +9,23 @@ namespace PrideUtils {
     return value < min ? min : (value > max ? max : value);
   }
 
-  fPDController::fPDController(float p, float d) {
+  fPIDController::fPIDController(float p, float i, float d) {
     this->p = p;
+    this->i = i;
     this->d = d;
     this->lastError = 0;
   }
 
-  float fPDController::update(float error) {
+  float fPIDController::update(float error) {
     float derivative = error - this->lastError;
     this->lastError = error;
-    return this->p * error + this->d * derivative;
+    this->iSum += error;
+    if (this->iSum > 100) {
+      this->iSum = 100;
+    } else if (this->iSum < -100) {
+      this->iSum = -100;
+    }
+    return this->p * error + this->d * derivative + this->i * this->iSum;
   }
 
   /**

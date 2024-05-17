@@ -16,11 +16,12 @@ using namespace PrideUtils;
 
 class DefenseAlgorithm {
     public:
-        static fPDController ballAngleController;
-        static fPDController rotationController;
+        static fPIDController ballAngleController;
+        static fPIDController rotationController;
         static void init();
         static void loop(int threadID);
         static float distanceToBack;
+        static int increment;
         static AngleRad angleOffset;
         static AngleRad ballAngleError;
 };

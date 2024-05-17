@@ -10,7 +10,7 @@ namespace PrideUtils {
 
     float fclamp(float value, float min, float max);
 
-    struct fPDController;
+    struct fPIDController;
     struct AngleRad;
     struct Vector;
 
@@ -83,12 +83,14 @@ namespace PrideUtils {
         
     };
 
-    struct fPDController {
+    struct fPIDController {
         float p;
+        float i;
+        float iSum;
         float d;
         float lastError;
 
-        fPDController(float p, float d);
+        fPIDController(float p, float i, float d);
 
         float update(float error);
     };

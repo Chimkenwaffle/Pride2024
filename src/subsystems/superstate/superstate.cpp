@@ -13,7 +13,9 @@ std::unordered_map<State, Color*> stateColors = {
     {PICKED_UP, new Color(0, 0, 255, false)},   // blue solid
     {ATTACKING, new Color(255, 0, 123, true)}, // purple flashing
     {ATTACKING_WITH_BALL, new Color(255, 0, 255, true)}, // purple flashing
-    {LINE_AVOIDING, new Color(0, 255, 255, true)} // cyan flashing
+    {LINE_AVOIDING, new Color(0, 255, 255, true)}, // cyan flashing
+    {NO_BALL_FOUND, new Color(32, 2, 70, false)}, // purple
+    {FULL_POWER, new Color(255, 255, 255, false)} // white 
 };
 
 // Define the constructor of the Color class

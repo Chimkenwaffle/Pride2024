@@ -68,6 +68,7 @@ class LineSensor {
         static Vector simpleVectorSum();
         static Vector findDesiredVector();
         static sensor_group_data calculateLineSensorGroups(); 
+        static sensor_group_data getLargestGap();
         static pair<Vector, Vector> getAveragedLineSensorVectors();
         static bool checkIfOnLine();
         static ApproxVerticalResults checkApproxVertical();

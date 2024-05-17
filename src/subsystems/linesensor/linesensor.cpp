@@ -302,6 +302,60 @@ sensor_group_data LineSensor::calculateLineSensorGroups() {
     return sensor_group_data{bestI, bestJ, largestAngle};
 }
 
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+sensor_group_data LineSensor::getLargestGap() {
+    std::vector<int> triggeredIndices;
+    
+
+    Serial.print("INput List: [");
+    // Collect all indices where sensor is triggered
+    for (int i = 0; i < 24; ++i) {
+        Serial.print(triggeredSensors[i]);
+        Serial.print(",");
+        if (triggeredSensors[i]) {
+            triggeredIndices.push_back(i);
+        }
+    }
+    Serial.println(']');
+
+    // Handle the case where there are less than two triggered sensors
+    if (triggeredIndices.size() < 2) {
+        return {-1, -1, -1};
+    }
+
+    int maxGap = 0;
+    int startIdx = -1;
+    int endIdx = -1;
+
+    // Calculate the gaps between consecutive triggered sensors
+    for (size_t i = 0; i < triggeredIndices.size() - 1; ++i) {
+        int currentGap = triggeredIndices[i + 1] - triggeredIndices[i];
+        if (currentGap > maxGap) {
+            maxGap = currentGap;
+            startIdx = triggeredIndices[i];
+            endIdx = triggeredIndices[i + 1];
+        }
+    }
+
+    // Check the circular gap (wrap around from last to first)
+    int circularGap = (24 + triggeredIndices.front() - triggeredIndices.back()) % 24;
+    if (circularGap > maxGap) {
+        maxGap = circularGap;
+        startIdx = triggeredIndices.back();
+        endIdx = triggeredIndices.front();
+    }
+
+    sensor_group_data retVal;
+    retVal.bestI = startIdx;
+    retVal.bestJ = endIdx;
+    retVal.closestAngle = maxGap;
+    return retVal;
+
+}
+
 bool LineSensor::checkIfOnLine() {
     return (lineSensorGroupData.closestAngle > 160);
 }
