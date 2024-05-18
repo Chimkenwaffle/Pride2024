@@ -12,11 +12,14 @@
 #include <Adafruit_MCP3008.h>
 #include <PrideUtils.h>
 #include <TeensyThreads.h>
+#include "SoftwareSerial.h"
 
 using namespace PrideUtils;
 
 // const double rotation_P = .4;
 // const double rotation_D = 0.1;
+
+SoftwareSerial owo(20, 21);
 
 void setup() {
   
@@ -57,6 +60,9 @@ void setup() {
 
   DefenseAlgorithm::init();
   // Attack::init();
+
+  // Serial5.begin(38400);
+  // owo.begin(38400);
 
   while (Switches::getSwitchOne() == false) {
     SuperState::changeState(State::WAITING_TO_CALIBRATE);
@@ -147,9 +153,9 @@ void setup() {
         LineSensor::thresholds[i] = maxGreenReadings[i] + difference / 2 ;
       }
 
-      LineSensor::thresholds[17] = LineSensor::thresholds[17] - 10;
-      LineSensor::thresholds[9] = LineSensor::thresholds[9] - 10;
-      LineSensor::thresholds[7] = LineSensor::thresholds[7] - 10;
+      // LineSensor::thresholds[17] = LineSensor::thresholds[17] - 10;
+      // LineSensor::thresholds[9] = LineSensor::thresholds[9] - 10;
+      // LineSensor::thresholds[7] = LineSensor::thresholds[7] - 10;
 
       Serial.print("Threshold Values: ");
       for(int i = 0; i < LineSensorConstants::LINE_SENSORS; i++) {
@@ -182,83 +188,28 @@ void setup() {
 bool foutOfBounds = false;
 Vector previousNormalLine = Vector(-5,-5);
 
+int babychim = 0;
+
 void loop() {
   SuperState::update();
   // LineSensor::read();
   // LineSensor::preProcessLineSensors();
-  // sensor_group_data owo = LineSensor::getLargestGap();
-  // Serial.print(owo.bestI);
-  // Serial.print(" ");
-  // Serial.print(owo.bestJ);
-  // Serial.print(" ");
-  // Serial.println((LineSensor::lineSensorVectors[owo.bestI] + LineSensor::lineSensorVectors[owo.bestJ]).toAngleDeg().value);
-  // sensor_group_data data = LineSensor::calculateLineSensorGroups();
-  // Vector normalLineSensor = Vector(0,0);
-  // if (data.bestI != 0 || data.bestJ != 0) {
-  //   normalLineSensor = LineSensor::lineSensorVectors[data.bestI] + LineSensor::lineSensorVectors[data.bestJ];
-
-  //   if (LineSensor::lineSensorGroups == 3) {
-  //     Serial.print("#3 ");
-  //     normalLineSensor = previousNormalLine;
-  //   }
-
-  //   Serial.print(data.bestI);
-  //   Serial.print(" ");
-  //   Serial.print(data.bestJ);
-
-  //   Serial.print(" Normal Line Sensor: ");
-  //   Serial.print(normalLineSensor.toAngleDeg().value);
-
-  //   Serial.print(" Previous Normal Line Sensor: ");
-  //   Serial.print(previousNormalLine.toAngleDeg().value);
-
-  //   if (previousNormalLine.x != -5) {
-  //     Serial.print(" HERE ");
-  //     float angleDiff = normalLineSensor.toAngleDeg().angleDifference(previousNormalLine.toAngleDeg()).value;
-  //     if (abs(angleDiff) > 90) {
-  //       foutOfBounds = !foutOfBounds;
-  //     } 
-  //   }
-
-  //   Serial.print(" out of bounds ");
-  //   Serial.print(foutOfBounds);
-
-  //   Serial.print(" outa here: ");
-  //   Vector outaHere = normalLineSensor;
-  //   outaHere = foutOfBounds ? outaHere : outaHere.flip();
-  //   Serial.print(outaHere.toAngleDeg().value);
-
-  //   Vector projectedOne = (outaHere.toAngleRad() + AngleRad(3.14/2)).toVector();
-  //   Vector projectedTwo = (outaHere.toAngleRad() + AngleRad(-3.14/2)).toVector();
-  //   Serial.print(" Possible proj vectors: ");
-  //   Serial.print(projectedOne.toAngleDeg().value);
-  //   Serial.print(" ");
-  //   Serial.println(projectedTwo.toAngleDeg().value);
-
-  //   previousNormalLine = normalLineSensor;
-  // } else {
-  //   previousNormalLine = Vector(-5, -5);
-  // }
-
-  // BallSensor::getBallAngleVector(true);
-  // Serial.println(BallSensor::ball_angle_deg.value);
-  // LineSensor::read();
-  // LineSensor::preProcessLineSensors();
-  // DefenseAlgorithm::loop(LocationSensor::threadID);
-  // Drivetrain::frontLeftMotor->writeAndSetPower(1);
-  // Drivetrain::frontRightMotor->writeAndSetPower(.2);
-  // Drivetrain::backRightMotor->writeAndSetPower(-.2);
-  // Drivetrain::backLeftMotor->writeAndSetPower(-1);
-  // Drivetrain::drive(3.14/2, .2, 0);
-  // Drivetrain::print();
-  // Drivetrain::drive(0, 1, 0);
-
-
+  // Serial.println("I AM A BABY CHIM");
+  // if (owo.available() > 0) {
+    // Serial.print(Serial5.read());
+    // Serial.println(owo.readStringUntil('|'));
+  // }/
+    // owo.print("I AM BABY CHIM");
+    // owo.print(babychim);
+    // owo.print('|');
+  // Serial5.write(babychim);
+  // babychim++;
+  // Serial5.print("I AM A BABY CHIM");
+  // Serial5.println(babychim);
+  SuperState::changeState(State::READY);
   Attack::loop(LocationSensor::threadID);
-  // delay(250);
+  // delay(500);
 
 
-  // Drivetrain::drive(180, 1, 0);
-  // if()
 
 }

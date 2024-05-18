@@ -9,6 +9,8 @@
 #include <subsystems/drivetrain/drivetrain.h>
 #include <subsystems/gyro/gyro.h>
 #include <subsystems/linesensor/linesensor.h>
+#include <subsystems/locationsensor/locationsensor.h>
+#include <subsystems/switches/switches.h>
 
 using namespace PrideUtils;
 using namespace std;
