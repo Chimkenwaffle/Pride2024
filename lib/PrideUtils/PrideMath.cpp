@@ -156,7 +156,8 @@ namespace PrideUtils {
     if (angle2 > 2*PRIDE_PI) {
       angle2 -= 2*PRIDE_PI;
     }
-    float diff = fmod((angle2 - angle1 + PRIDE_PI), 2*PRIDE_PI) - PRIDE_PI;
+    
+    float diff = fmod((angle2 - angle1 + PRIDE_PI), 2 * PRIDE_PI) - PRIDE_PI;
     return AngleRad{diff < -PRIDE_PI ? diff + 2*PRIDE_PI : diff};
   }
 

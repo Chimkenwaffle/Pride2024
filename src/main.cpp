@@ -12,14 +12,14 @@
 #include <Adafruit_MCP3008.h>
 #include <PrideUtils.h>
 #include <TeensyThreads.h>
-#include "SoftwareSerial.h"
+// #include "SoftwareSerial.h"
 
 using namespace PrideUtils;
 
 // const double rotation_P = .4;
 // const double rotation_D = 0.1;
 
-SoftwareSerial owo(20, 21);
+// SoftwareSerial owo(20, 21);
 
 void setup() {
   
@@ -206,10 +206,13 @@ void loop() {
   // babychim++;
   // Serial5.print("I AM A BABY CHIM");
   // Serial5.println(babychim);
-  SuperState::changeState(State::READY);
-  Attack::loop(LocationSensor::threadID);
+  // SuperState::changeState(State::READY);
+  // Serial.println(LocationSensor::frBack);
+  // Drivetrain::drive(0, .5, 0);
+  DefenseAlgorithm::loop(LocationSensor::threadID);
+  // Attack::loop(LocationSensor::threadID);
   // delay(500);
-
+  // delay(1000/60);
 
 
 }

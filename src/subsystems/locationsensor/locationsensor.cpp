@@ -114,7 +114,7 @@ void LocationSensor::loop() {
             #endif
         }
 
-        threads.delay_us(10000);
+        threads.delay(50);
         readingVertical = !readingVertical;
     }
 }
