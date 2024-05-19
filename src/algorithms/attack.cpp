@@ -15,20 +15,22 @@ bool corner = false;
 int increment = 0;
 bool wasOverCorner = false;
 
+int lastFrBack = 0;
+
 void Attack::init() {
     // Initialize the attack algorithm
     Drivetrain::power = 1.0;
 }
 
 float dampen(float x) {
-  return fmin(1.0, 0.15 * pow(M_E, 3.5 * x));
+  return fmin(1.0, 0.15 * pow(M_E, 3.6 * x));
   // return fmax(0, fmin(1, 0.02 * pow(1.0001, 20 * (x - 10))));
 }
 
 
 float getBallOffset(float inAngle) {
   float formulaAngle = inAngle > 180.0 ? 360 - inAngle : inAngle;
-  return (fmin(0.06 * pow(M_E, 0.18 * formulaAngle + 1.8), 90));
+  return (fmin(0.06 * pow(M_E, 0.19 * formulaAngle + 1.8), 90));
 }
 
 bool doSideStep = true;
@@ -38,6 +40,9 @@ int lastSideStep = 0;
 int middleSideSteppingTimeDiff = .5;
 int stopSideSteppingTime = 2;
 
+int lastTimeNotNearBack = 0;
+
+// TODO: ADD ANTI BAC
 // positive = left, negative = right
 float desiredHeading = 0;
 
@@ -46,8 +51,18 @@ const double rotation_D = 0.1;
 fPIDController rotationController = fPIDController(rotation_P,0, rotation_D);
 AngleRad prev_robo_angle = 0;
 void Attack::loop(int threadID) {
+
+    if (Switches::getSwitchThree() == false) {
+      desiredPower = .7;
+    } else {
+      desiredPower = .9;
+    }
+
     power = desiredPower;
     BallSensor::getBallAngleVector(true);
+    if (LocationSensor::frBack < 60) {
+      lastTimeNotNearBack = millis();
+    }
 
     AngleDeg cartesianBallAngle = BallSensor::ball_angle_deg;
     AngleDeg forwardAngle = cartesianBallAngle.forwardAngle();
@@ -71,25 +86,26 @@ void Attack::loop(int threadID) {
     prev_robo_angle = roboAngle;
 
   
-    if (Switches::getSwitchFour() == true && sideStepping ==0 && fabs(rotation) < .2 && BallSensor::ball_mag > .75 && BallSensor::ball_mag < .9 && BallSensor::ball_angle_deg.value > 75 && BallSensor::ball_angle_deg.value < 105 && LocationSensor::toFront < 125 && LocationSensor::toFront > 40) {
-      Serial.print("LEFT: ");
-      Serial.print(LocationSensor::frLeft);
-      Serial.print(" RIGHT: ");
-      Serial.print(LocationSensor::frRight);
+    if (Switches::getSwitchFour() == true && sideStepping == 0 && fabs(rotation) < .2 && BallSensor::ball_mag > .82 && BallSensor::ball_mag < .9 && BallSensor::ball_angle_deg.value > 75 && BallSensor::ball_angle_deg.value < 105 && LocationSensor::toFront < 125 && LocationSensor::toFront > 40) {
+      // Serial.print("LEFT: ");
+      // Serial.print(LocationSensor::frLeft);
+      // Serial.print(" RIGHT: ");
+      // Serial.print(LocationSensor::frRight);
       if (LocationSensor::rightGood && LocationSensor::frRight < 50 && LocationSensor::frRight > 25) {
         sideStepping = 1;
-        Serial.println("right good");
+        // Serial.println("right good");
       } else if (LocationSensor::leftGood && LocationSensor::frLeft < 50 && LocationSensor::frLeft > 25) {
         sideStepping = 5;
-        Serial.println("left good");
+        // Serial.println("left good");
       }
       startSidesteppingTime = millis();
       lastSideStep = millis();
       Serial.println(sideStepping);
     } 
 
+    desiredHeading = 0;
     if (sideStepping == 1) {
-      if (BallSensor::ball_mag < .75 && BallSensor::ball_angle_deg.value > 70 && BallSensor::ball_angle_deg.value < 130) {
+      if (BallSensor::ball_mag < .7 && BallSensor::ball_angle_deg.value > 65 && BallSensor::ball_angle_deg.value < 135) {
         sideStepping = 0;
         desiredHeading = 0;
       }
@@ -101,7 +117,7 @@ void Attack::loop(int threadID) {
 
       } 
     } else if (sideStepping == 2) {
-      if (BallSensor::ball_mag < .75 && BallSensor::ball_angle_deg.value > 70 && BallSensor::ball_angle_deg.value < 130) {
+      if (BallSensor::ball_mag < .7 && BallSensor::ball_angle_deg.value > 70 && BallSensor::ball_angle_deg.value < 130) {
         sideStepping = 0;
         desiredHeading = 0;
         power = desiredPower;
@@ -109,20 +125,20 @@ void Attack::loop(int threadID) {
       SuperState::changeState(State::WAITING_TO_SPIN_CALIBRATE);
       power = 1.0;
       finalAngle = AngleDeg(0);
-      if ((millis() - startSidesteppingTime) > 650) {
+      if ((millis() - startSidesteppingTime) > 550) {
         sideStepping = 0;
         desiredHeading = 0;
         power = desiredPower;
       }
     } else if (sideStepping == 5) {
-      if (BallSensor::ball_mag < .75 && BallSensor::ball_angle_deg.value > 70 && BallSensor::ball_angle_deg.value < 130) {
+      if (BallSensor::ball_mag < .7 && BallSensor::ball_angle_deg.value > 65 && BallSensor::ball_angle_deg.value < 135) {
         sideStepping = 0;
         desiredHeading = 0;
       }
       SuperState::changeState(State::ATTACKING);
       finalAngle = AngleDeg(360-95);
       desiredHeading = -.9;
-      if ((millis() - startSidesteppingTime) > 150) {
+      if ((millis() - startSidesteppingTime) > 200) {
         sideStepping = 2;
       }
     } 

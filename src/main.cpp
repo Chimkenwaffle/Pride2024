@@ -65,8 +65,16 @@ void setup() {
   // owo.begin(38400);
 
   while (Switches::getSwitchOne() == false) {
-    SuperState::changeState(State::WAITING_TO_CALIBRATE);
+    // SuperState::changeState(State::WAITING_TO_CALIBRATE);
+
+    if (Switches::getSwitchFive() == true) {
+      SuperState::changeState(State::LINE_AVOIDING);
+    } else {
+      SuperState::changeState(State::PICKED_UP);
+    }
+
     SuperState::update(true);
+
     // Serial.println("[SETUP] Calibrating...");
     Drivetrain::stop();
     if (Switches::getSwitchTwo() == true) {
@@ -150,7 +158,7 @@ void setup() {
           greenGreaterThanWhite = true;
         }
         int difference = abs(maxGreenReadings[i] - maxWhiteReadings[i]);
-        LineSensor::thresholds[i] = maxGreenReadings[i] + difference / 2 ;
+        LineSensor::thresholds[i] = maxGreenReadings[i] + difference / 3 ;
       }
 
       // LineSensor::thresholds[17] = LineSensor::thresholds[17] - 10;
@@ -192,27 +200,15 @@ int babychim = 0;
 
 void loop() {
   SuperState::update();
+
   // LineSensor::read();
   // LineSensor::preProcessLineSensors();
-  // Serial.println("I AM A BABY CHIM");
-  // if (owo.available() > 0) {
-    // Serial.print(Serial5.read());
-    // Serial.println(owo.readStringUntil('|'));
-  // }/
-    // owo.print("I AM BABY CHIM");
-    // owo.print(babychim);
-    // owo.print('|');
-  // Serial5.write(babychim);
-  // babychim++;
-  // Serial5.print("I AM A BABY CHIM");
-  // Serial5.println(babychim);
-  // SuperState::changeState(State::READY);
-  // Serial.println(LocationSensor::frBack);
-  // Drivetrain::drive(0, .5, 0);
-  DefenseAlgorithm::loop(LocationSensor::threadID);
-  // Attack::loop(LocationSensor::threadID);
-  // delay(500);
-  // delay(1000/60);
 
+  if(Switches::getSwitchFive() == true) {
+    SuperState::changeState(State::READY);
+    Attack::loop(LocationSensor::threadID);
+  } else {
+    DefenseAlgorithm::loop(LocationSensor::threadID);
+  }
 
 }

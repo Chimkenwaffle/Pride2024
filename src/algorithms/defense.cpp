@@ -2,9 +2,11 @@
 
 AngleRad DefenseAlgorithm::angleOffset = 0;
 AngleRad DefenseAlgorithm::ballAngleError = 0;
-float DefenseAlgorithm::distanceToBack = 35.0;
-float distanceFront = 1.0;
-float distanceBack = 0.2;
+float DefenseAlgorithm::distanceToBack = 33.0;
+float distanceFront = 1.5;
+float distanceBack = 0.8;
+int timeUpdating = 0;
+int timer = 0;
 float initialDistanceToBack = DefenseAlgorithm::distanceToBack;
 int maxIncrement = 1000;
 int DefenseAlgorithm::increment = maxIncrement;
@@ -19,7 +21,7 @@ fPIDController DefenseAlgorithm::rotationController =
     fPIDController(.7,0, 0.2);
 
 // y-axis
-fPIDController wallController = fPIDController(1.3, 0, 8.2);
+fPIDController wallController = fPIDController(0.7, 0, 5.2);
 
 bool noDirectionYPrevious = false;
 
@@ -42,10 +44,11 @@ void DefenseAlgorithm::loop(int threadID) {
 
         fYError = fclamp(fYError, -1, 1);
     }
-    Serial.print("FYERROR: ");
-    Serial.println(fYError);
-    Serial.print("FRBACK: ");
-    Serial.println(LocationSensor::frBack);
+
+    // Serial.print("FYERROR: ");
+    // Serial.println(fYError);
+    // Serial.print("FRBACK: ");
+    // Serial.println(LocationSensor::frBack);
 
     BallSensor::read();
     BallSensor::getBallAngleVector(false);
@@ -76,23 +79,29 @@ void DefenseAlgorithm::loop(int threadID) {
     // Serial.print("Tolerance: ");
     // Serial.print(90.0 - ballAngle.toDeg().value);
 
-    float angleSpread = 2;
-    if(BallSensor::ball_mag != 0){
-        angleSpread = 10.0 / BallSensor::ball_mag;
-    }
+    float angleSpread = 10 / BallSensor::ball_mag;
+    angleSpread = min(angleSpread, 15);
+
+    // Serial.print("Ball Magnitude: ");
+    // Serial.println(BallSensor::ball_mag);
+    // Serial.print("Angle Spread: ");
+    // Serial.println(angleSpread);
+
+    bool corner = false;
     bool conditionThree = false;
     bool conditionOne = false;
     bool conditionTwo = false;
-    float degreeBehind = 45.0;
+    // float degreeBehind = 45.0;
     // on line && ball in front
     if (fabs(90 - ballAngle.toDeg().value) < angleSpread && (data.bestI != 0 || data.bestJ != 0)) {
-        Serial.println("Condition 1");
+        // Serial.println("Condition 1");
         conditionOne = true;
         direction = Vector(0, 0);
         ballPower = 0;
+        fYError = 0;
         // when you are on line && ball is in field && the ball isnt directly in front of you
-    } else if ((data.bestI != 0 || data.bestJ != 0) && BallSensor::ball_mag > 0.3 && fabs(90.0 - ballAngle.toDeg().value) > angleSpread ) {
-        Serial.println("Condition 2");
+    } else if ((data.bestI != 0 || data.bestJ != 0) && fabs(90.0 - ballAngle.toDeg().value) > angleSpread ) {
+        // Serial.println("Condition 2");
         conditionTwo = true;
         normalLineSensor = LineSensor::lineSensorVectors[data.bestI] + LineSensor::lineSensorVectors[data.bestJ];
 
@@ -132,17 +141,19 @@ void DefenseAlgorithm::loop(int threadID) {
             // direction.y = -.2;
         }
 
-        float edgecaseTolerance = 20.0;
+        float edgecaseTolerance = 15.0;
+        float triggerTolerance = 25.0;
         distanceToBack = initialDistanceToBack;
         // edge case when on corners
-        if (normalLineSensor.x * normalLineSensor.y > 0.1 && LocationSensor::rightGood && (ballAngle.toDeg().value < 90 && ballAngle.toDeg().value > -100)) {
-            Serial.println("Right Side Case");
+        if (normalLineSensor.x * normalLineSensor.y > 0.1 && LocationSensor::rightGood && (ballAngle.toDeg().value < 90 && ballAngle.toDeg().value > -90 - triggerTolerance)) {
+            // Serial.println("Right Side Case");
             // quadrant 1
             if (normalLineSensor.x > 0) {
                 if(normalLineSensor.toAngleDeg().value < 90 - edgecaseTolerance) {
                     direction = Vector(0, 0);
                     // distanceToBack = 33.5;
                     ballPower = 0;
+                    corner = true;
                 }
             // quadrant 3
             } else {
@@ -150,18 +161,20 @@ void DefenseAlgorithm::loop(int threadID) {
                     direction = Vector(0, 0);
                     // distanceToBack = 33.5;
                     ballPower = 0;
+                    corner = true;
                 }
             }
             increment = 0;
 
-        } else if (normalLineSensor.x * normalLineSensor.y < -0.1 && LocationSensor::leftGood && (ballAngle.toDeg().value > 90 || ballAngle.toDeg().value < -80)) {
-            Serial.println("Left Side Case");
+        } else if (normalLineSensor.x * normalLineSensor.y < -0.1 && LocationSensor::leftGood && (ballAngle.toDeg().value > 90 || ballAngle.toDeg().value < -90 + triggerTolerance)) {
+            // Serial.println("Left Side Case");
             // quadrant 4
             if (normalLineSensor.x > 0) {
                 if(normalLineSensor.toAngleDeg().value > -90 + edgecaseTolerance) {
                     direction = Vector(0, 0);
                     // distanceToBack = 33.5;
                     ballPower = 0;
+                    corner = true;
                 }
             // quadrant 2
             } else {
@@ -169,6 +182,7 @@ void DefenseAlgorithm::loop(int threadID) {
                     direction = Vector(0, 0);
                     // distanceToBack = 33.5;
                     ballPower = 0;
+                    corner = true;
                 }
             }
             increment = 0;
@@ -178,99 +192,62 @@ void DefenseAlgorithm::loop(int threadID) {
                 direction = Vector(0, 0);
                 ballPower = 0;
             }
-        } else if (fabs(data.closestAngle) < 166) {
+        } 
+        // else if (fabs(data.closestAngle) < 166) {
             // if (normalLineSensor.y < 0) {
             //     direction += normalLineSensor*.4;
             //     direction.toUnitVector();
             // } 
             // if (normalLineSensor)
             
+        // }
+
+        if (direction.y > direction.x + .2 && direction.y > 0) {
+            direction.y *= .5;
         }
 
-        // fYError = 0;
+        fYError = 0;
 
         // off the line
     } else {
-        Serial.println("NOT ON LINE");
-        // somehow we are not on the line :skull:
-        // check if left is good
-        // Serial.print("Left: ");
-        // Serial.println(LocationSensor::frLeft);
-        // Serial.print("Right: ");
-        // Serial.println(LocationSensor::frRight);
-        // Serial.print(" left good: ");
-        // Serial.print(LocationSensor::leftGood);
-        // Serial.print(" right good: ");
-        // Serial.print(LocationSensor::rightGood);
-        // Serial.print(" frLeft: ");
-        // Serial.print(LocationSensor::frLeft);
-        // Serial.print(" frRight ");
-        // Serial.print(LocationSensor::frRight);
-        // Serial.print(" ball angle error ");
-        // Serial.print(DefenseAlgorithm::ballAngleError.value);
-        // Serial.print(" bp ");
-        // Serial.print(ballPower);
-        // Serial.print(" ");
-
+      
         conditionThree = true;
         // not on line and not on edge
-        if ((!LocationSensor::leftGood && !LocationSensor::rightGood) && BallSensor::ball_mag > 0.3) {
+        if (!LocationSensor::leftGood && !LocationSensor::rightGood) {
             // When ball is on 
+            // Serial.println("Neither Good");
             if (DefenseAlgorithm::ballAngleError.value > 0) {
                 if (LocationSensor::frBack > distanceToBack + distanceFront) {
-                    direction = Vector(fabs(ballPower), -0.3);
+                    direction = Vector(1, -0.5);
                 } else if (LocationSensor::frBack < distanceToBack - distanceBack) {
-                    direction = Vector (fabs(ballPower), 0.3);
+                    direction = Vector (1, 0.5);
                 }
             } else if (DefenseAlgorithm::ballAngleError.value < 0) {
                 if (LocationSensor::frBack > distanceToBack + distanceFront) {
-                    direction = Vector(-fabs(ballPower), -0.3);
+                    direction = Vector(-1, -0.5);
                 } else if (LocationSensor::frBack < distanceToBack - distanceBack) {
-                    direction = Vector (-fabs(ballPower), 0.3);
+                    direction = Vector (-1, 0.5);
                 }
             }
         } else if (LocationSensor::leftGood) {
+            // Serial.println("Left Good");
             if (LocationSensor::frBack > distanceToBack + distanceFront) {
-                direction = Vector(1, -0.3);
+                direction = Vector(1, -0.5);
             } else if (LocationSensor::frBack < distanceToBack - distanceBack) {
-                direction = Vector (1, 0.3);
+                direction = Vector(1, 0.5);
+            } else {
+                direction = Vector(1, 0);
             }
         } else if (LocationSensor::rightGood) {
+            // Serial.println("Right Good");
             if(LocationSensor::frBack > distanceToBack + distanceFront) {
-                direction = Vector(-1, -0.3);
+                direction = Vector(-1, -0.5);
             } else if (LocationSensor::frBack < distanceToBack - distanceBack) {
-                direction = Vector(-1, 0.3);
+                direction = Vector(-1, 0.5);
+            } else {
+                direction = Vector(-1, 0);
             }
         }
-
-
-        //     // other robot on left side && our robot is on right side && other robot is closer than thing on right || right is good while left isn't good
-        //     // robot is on right side
-        // if (((LocationSensor::leftGood && LocationSensor::rightGood) && (LocationSensor::frLeft > LocationSensor::frRight)) || (LocationSensor::rightGood && !LocationSensor::leftGood)) {
-        //     direction = Vector(-1, -.75);
-        //     // rotation *= 1.5;
-        //     // Serial.print("L > R: moving left");
-
-        //     // other robot is on right side && other robot is closer than thing on left || left is good while right isnt good
-        //     // robot is on left side
-        // } else if (((LocationSensor::leftGood && LocationSensor::rightGood) && (LocationSensor::frRight > LocationSensor::frLeft)) || (LocationSensor::leftGood && !LocationSensor::rightGood)) {
-        //     direction = Vector(1, -.4);
-        //     // rotation *= 1.5;
-        //     // rotation = fclamp(rotation, -1, 1);
-        //     // Serial.print("R > L : moving right");
-        // } else if (DefenseAlgorithm::ballAngleError.value > 0) {
-        //     // ballPower += .2;
-        //     direction = Vector(fabs(ballPower), -.3);
-        //     fYError *= 3;
-        // } else {
-        //     // ballPower += .2;
-        //     direction = Vector(-fabs(ballPower), -.3);
-        //     fYError *= 3;
-        // }
-
-        // fYError = fclamp(fYError, -.5, .5);
-        // ballPower = fclamp(ballPower, -1, 1);
-        // Serial.println();
     }
 
     // Serial.print("Ball Power: ");
@@ -278,39 +255,22 @@ void DefenseAlgorithm::loop(int threadID) {
 
 
     
-    if (LocationSensor::frBack > distanceToBack + 1.5 && direction.y != 0 && direction.x != 0) {
-        direction.y -= .15;
-        fYError *= 1.2;
-    } else if (LocationSensor::frBack > distanceToBack) {
-        fYError *= 1.5;
-    }
-
-    if (LocationSensor::frLeft < 55 || LocationSensor::frRight < 55) {
-        direction.y = -.1;
-    }
-    // if (increment < maxIncrement) {
-    //     Serial.println("in increment");
-    //     direction.y = -.1;
-    //     increment++;
-    // }
-
-    if (LineSensor::triggeredSensors[0] == true && LineSensor::triggeredSensors[12] == true) {
-        // increment = 0;
-        direction.y=-.1;
-    }
-
-    // Serial.print("Direction: ");
-    // Serial.println(direction.toAngleDeg().value);
+    // if (LocationSensor::frBack > distanceToBack + 1.5 && direction.y != 0 && direction.x != 0) {
+    //     direction.y -= .15;
+    //     fYError *= 1.2;
+    // } 
     
+    if (fYError < 0) {
+        fYError *= .5;
+    }
+
+
     bool ready = false;
     float power = 0;
     if (LineSensor::checkIfPickedUp()) {
         SuperState::changeState(State::PICKED_UP);
     } else {
-        if (BallSensor::ball_mag < 0.3) { 
-            ballPower = 0;
-            SuperState::changeState(State::NO_BALL_FOUND);
-        } else if (BallSensor::ball_mag > 0.2) {
+        if (BallSensor::ball_mag > 0.2) {
             SuperState::changeState(State::READY);
             ready = true;
         }
@@ -324,6 +284,38 @@ void DefenseAlgorithm::loop(int threadID) {
             }
         }
     }
+    AngleDeg normalLineDeg = AngleDeg(normalLineSensor.toAngleDeg().value);
+    if (normalLineDeg.value < 0) {
+        normalLineDeg += 360;
+    }
+
+    float distanceFromEdge = 20;
+    float edgeAngleOffset = 35;
+    if((LocationSensor::frRight > distanceFromEdge && LocationSensor::frLeft > distanceFromEdge) || ((normalLineDeg.value > edgeAngleOffset && normalLineDeg.value < 360 - edgeAngleOffset) && (normalLineDeg.value < 180 - edgeAngleOffset || normalLineDeg.value > 180 + edgeAngleOffset)) || corner) {
+        timeUpdating = millis();
+    }
+
+    // Serial.print("Normal Vector ");
+    // Serial.println(normalLineDeg.value);
+    // Serial.print("frLeft:");
+    // Serial.println(LocationSensor::frLeft);
+    
+    int currentTime = millis();
+    if (timeUpdating + 500 < currentTime) {
+        if(LocationSensor::backGood) {
+            if (LocationSensor::rightGood) {
+                direction = Vector(-1, 0);
+            } else if (LocationSensor::leftGood) {
+                direction = Vector(1, 0);
+            }
+        } else if (!LocationSensor::backGood) {
+            if (LocationSensor::rightGood) {
+                direction = Vector(-1, -1);
+            } else if (LocationSensor::leftGood) {
+                direction = Vector(1, -1);
+            }
+        }
+    } 
 
     // ball on left or right
     if(ballAngle.toDeg().value > 90.0) {
@@ -344,10 +336,18 @@ void DefenseAlgorithm::loop(int threadID) {
         SuperState::changeState(State::READY);
     }
 
-    Serial.print(" Direction: ");
-    Serial.println(direction.toAngleDeg().value);
+    if (LineSensor::checkIfPickedUp()) {
+        power = 0;
+    }
+
+    if (corner) {
+        SuperState::changeState(State::WAITING_TO_CALIBRATE);
+    }
+    
+    // Serial.print(" Direction: ");
+    // Serial.println(direction.toAngleDeg().value);
 
     Drivetrain::vectorDrive(Vector(0, fYError) + direction, power, rotation);
     // Serial.println();
-    Serial.println("---");
+    // Serial.println("---");
 }
